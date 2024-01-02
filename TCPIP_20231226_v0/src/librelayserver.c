@@ -154,7 +154,7 @@ void *Th_RelayServer_Job_Scheduler(void *Data)
                         }
                     }
                 }
-                         }
+            }
         }
     }
     return NULL;
@@ -685,7 +685,6 @@ Parameter[Out]
  */
 int f_s_RelayServer_Job_Process_Initial(struct data_header_info_t *Now_Header, uint8_t *Data)
 {
-    F_Print_Debug(222 ,"Now Working Function %s\n\n", __func__);
      if(Data)
     {
         char *Payload = (Data + HEADER_SIZE); 
@@ -769,7 +768,6 @@ Parameter[Out]
  */
 int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header, uint8_t *Data)
 {
-    F_Print_Debug(222 ,"Now Working Function %s\n\n", __func__);
     if(Data)
     {
         char *Payload = (Data + HEADER_SIZE); 
@@ -969,12 +967,6 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Head
             curl_easy_cleanup(curl_handle);
             curl_global_cleanup();
             Relay_safefree(url);
-            printf("chunk.size:%d\n", chunk.size);
-            for(int i = 0; i < chunk.size; i++)
-            {
-                printf("%C", chunk.memory[i]);
-            }
-            printf("\n");
         }
         uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (chunk.size + HEADER_SIZE));
         memset(Http_Recv_data, 0x00, sizeof(uint8_t) * (chunk.size + HEADER_SIZE));

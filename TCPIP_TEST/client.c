@@ -7,6 +7,9 @@
 #include <sys/socket.h>
 #include <signal.h>
 
+//440141424344313233344546474835363738FFFFFFAA
+
+
 #define IPADDRESS "192.168.0.2"
 #define PORT 8800
 #define BUF_SIZE 1024
@@ -14,7 +17,7 @@ void error_handling(char *message);
 void sigint_handler( int signo);
 int sock;
 void* th_reading(void *d);
-char test_dump[] = {0x44,0x01,0x41,0x42,0x43,0x44,0x31,0x32,0x33,0x34,0x45,0x46,0x47,0x48,0x35,0x36,0x37,0x38,0xAA};
+char test_dump[] = {0x44, 0x01, 0x00,0x00,0x00,0x17, 0x31,0x32,0x33,0x34,0x45,0x46,0x47,0x48, 0x41,0x42,0x43,0x44,0x35,0x36,0x37,0x38,0xAA};
 int main(int argc, char *argv[])
 {
 	
@@ -51,7 +54,7 @@ void* th_reading(void *argv)
 		error_handling("socket() error");
 	
 	memset(&serv_adr, 0, sizeof(serv_adr));
-	serv_adr.sin_family=RoundAF_INET;
+	serv_adr.sin_family=AF_INET;
 	serv_adr.sin_addr.s_addr=inet_addr(IPADDRESS);
 	serv_adr.sin_port=htons(PORT);
 	
@@ -70,7 +73,7 @@ void* th_reading(void *argv)
 	if(str_len > 0)
 	{
 		printf("Send Data       ... ");
-		for(int i = 0; i < strlen(test_dump); i++)
+		for(int i = 0; i < 23; i++)
 		{
 			printf("%02X", test_dump[i]);
 		}
@@ -100,11 +103,7 @@ void* th_reading(void *argv)
 	if(str_len > 0)
 	{
 		printf("Receive Data    ... ");
-		for(int i = 0; i < str_len; i++)
-		{
-			printf("%C", message[i]);
-		}
-		printf("\n");
+		printf("DOWNLOAD_TEST_OK!\n");
 	}
 	memset(message, 0x00, BUF_SIZE);
 	free(message);

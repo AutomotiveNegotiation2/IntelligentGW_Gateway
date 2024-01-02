@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Works/Jobs/이름모름_1_TCP_연계_SW_개발/Code_Dev/TCPIP",
-      "program": "c:/Works/Jobs/이름모름_1_TCP_연계_SW_개발/Code_Dev/TCPIP/build/Debug/outDebug",
+      "cwd": "c:/Works/Jobs/Secure_OTA/Code_Dev/TCPIP_20231226_v0/src",
+      "program": "c:/Works/Jobs/Secure_OTA/Code_Dev/TCPIP_20231226_v0/src/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
