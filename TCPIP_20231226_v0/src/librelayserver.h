@@ -38,8 +38,14 @@
 #include <curl/curl.h>
 
 #define HTTP_HOST_ADDRESS "192.168.0.250"
-#define HTTP_HOST_PORT "80"
+#define HTTP_HOST_PORT "50000"
 #define NOT_CODE_FINISH 0
+
+#define PROGRAM_HEADER_SIZE 6
+#define PROGRAM_INFO_SIZE 16
+
+#define FIREWARE_HEADER_SIZE 6
+#define FIREWARE_INFO_SIZE 16
 
 #define MAX_CLIENT_SIZE 1024
 #define MAX_TASK_NUM 128

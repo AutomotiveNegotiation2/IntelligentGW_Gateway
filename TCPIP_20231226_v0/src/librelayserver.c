@@ -37,7 +37,8 @@ struct socket_info_t F_s_RelayServer_TcpIp_Initial_Server(char *Device_Name, int
             Socket_Info.Device_Name = "INADDR_ANY";
             Socket_Info.Socket_Addr.sin_addr.s_addr = htonl(INADDR_ANY);
         }
-        Socket_Info.Socket = socket(AF_INET, SOCK_STREAM, 0);
+        //Socket_Info.Socket = socket(AF_INET, SOCK_STREAM, 0);
+        Socket_Info.Socket = socket(AF_INET, SOCK_DGRAM, 0);
         //Socket_Setup
         ret = f_i_RelayServer_TcpIp_Setup_Socket(&Socket_Info.Socket, 10, true);
         if(ret < 0)
@@ -81,12 +82,11 @@ int F_i_RelayServer_TcpIp_Get_Address(char *Device_Name, char Output_IPv4Adrress
 	close(IP_Parsing_Socket);
 }
 /* 
-Brief:
+Brief:Run the Server_Tesk which is receiving from ecu
 Parameter[In]
 Parameter[Out]
  */
 int F_i_RelayServer_TcpIp_Task_Run(struct socket_info_t *Socket_Info)
-
 {
     int ret;
     ret = f_i_RelayServer_TcpIp_Bind(&Socket_Info->Socket, Socket_Info->Socket_Addr);
@@ -133,7 +133,6 @@ void *Th_RelayServer_Job_Scheduler(void *Data)
         {
             for(int i = 0; i < Data_Info->Data_Count; i++)
             {
-                printf("DEBUG - 3\n"); 
                 size_t data_size;
                 uint8_t *out_data = (uint8_t*)F_v_RelayServer_Data_Pop(Data_Info, &data_size);  
                 struct data_header_info_t Data_Header_Info = f_s_Parser_Data_Header(out_data, HEADER_SIZE);
@@ -200,48 +199,48 @@ int f_i_RelayServer_Job_Task(uint8_t *Input_Data)
     return 0;
 }
 
-
-void *th_RelayServer_Job_Task(void* Input_Data)
-{
-
-     if(Input_Data)
+#ifdef THREAD_TYPE_PROCESS_ON
+    void *th_RelayServer_Job_Task(void* Input_Data)
     {
-        uint8_t *Data = (uint8_t*)Input_Data;
-        struct data_header_info_t Data_Header_Info = f_s_Parser_Data_Header(Data, HEADER_SIZE);
-        enum job_type_e Now_Job;
-        for(;;)
-        {
-            Now_Job = f_e_RelayServer_Job_Process_Do(&Data_Header_Info, &Data);
-            switch(Now_Job)
-            {
-                case Initial:
-                case FirmwareInfoReport:
-                case FirmwareInfoResponse:
-                case FirmwareInfoIndication:
-                case ProgramInfoReport: 
-                case ProgramInfoResponse:
-                case ProgramInfoIndication:
-                case HandOverReminingData:
-                case FirmwareInfoRequest:
-                case ProgramInfoRequest:
-                case Finish:
-                    break;
-                default:
-                    break; 
-            }  
-            if((Now_Job > 0 && Now_Job < 50))
-            {
-            }else{
-                break;
-            }
-        }        
-        Relay_safefree(Data);
-    }else{
-    }
-    G_Clients_Info.task_num--;
-    return NULL;
-}
 
+        if(Input_Data)
+        {
+            uint8_t *Data = (uint8_t*)Input_Data;
+            struct data_header_info_t Data_Header_Info = f_s_Parser_Data_Header(Data, HEADER_SIZE);
+            enum job_type_e Now_Job;
+            for(;;)
+            {
+                Now_Job = f_e_RelayServer_Job_Process_Do(&Data_Header_Info, &Data);
+                switch(Now_Job)
+                {
+                    case Initial:
+                    case FirmwareInfoReport:
+                    case FirmwareInfoResponse:
+                    case FirmwareInfoIndication:
+                    case ProgramInfoReport: 
+                    case ProgramInfoResponse:
+                    case ProgramInfoIndication:
+                    case HandOverReminingData:
+                    case FirmwareInfoRequest:
+                    case ProgramInfoRequest:
+                    case Finish:
+                        break;
+                    default:
+                        break; 
+                }  
+                if((Now_Job > 0 && Now_Job < 50))
+                {
+                }else{
+                    break;
+                }
+            }        
+            Relay_safefree(Data);
+        }else{
+        }
+        G_Clients_Info.task_num--;
+        return NULL;
+    }   
+#endif
 
 void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
 {
@@ -249,25 +248,27 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
     G_Recv_Count = 0;
     G_Send_Count = 0;
 #endif
-
     int ret, i;
     struct socket_info_t *Socket_Info = (struct socket_info_t*)socket_info;
     struct Used_Data_Info_t *Data_Info = G_Data_Info;
     int Client_Socket;
     struct sockaddr_in  Client_Address;
     socklen_t adr_sz = sizeof(Client_Address);
+    #if 0
     ret = listen(Socket_Info->Socket, 5);
     if(ret == -1)
     {
         return NULL;
     }
+    #endif
     //pthread_mutex_init(&G_Clients_Info.mtx, NULL);
     int epoll_size = MAX_CLIENT_SIZE - 16;
     int epoll_event_count;
-	  G_epfd = epoll_create(epoll_size);
-	  struct epoll_event epoll_event;
+    G_epfd = epoll_create(epoll_size);
+    struct epoll_event epoll_event;
     epoll_event.events = EPOLLIN;
-	  epoll_event.data.fd = Socket_Info->Socket;	epoll_ctl(G_epfd, EPOLL_CTL_ADD, Socket_Info->Socket, &epoll_event);
+    epoll_event.data.fd = Socket_Info->Socket;	
+    epoll_ctl(G_epfd, EPOLL_CTL_ADD, Socket_Info->Socket, &epoll_event);
     int str_len;
     int client_is, client_count;
     int epoll_block_timer;
@@ -276,6 +277,7 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
     uint8_t push_data[1024];
     for(;;)
     {
+        usleep(1000);
         if(G_Clients_Info.connected_client_num > 0)
         {
           if(Data_Info->Data_Count <= 0)
@@ -296,7 +298,6 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
 		}
 		for(i = 0; i < epoll_event_count % epoll_size; i++)
 		{
-
 			if(G_epoll_events[i].data.fd == Socket_Info->Socket)
 			{
                 if(G_Clients_Info.connected_client_num >= epoll_size)
@@ -304,9 +305,11 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                     goto EPOLL_SERVER_LOOP_OUT;
                 }else{
                     Client_Socket = accept(Socket_Info->Socket, (struct sockaddr*)&Client_Address, &adr_sz);
+                    printf("DEBUG:[%s][%d]-Client_Socket:%d\n", __func__, __LINE__, Client_Socket);
                 }
                 if(Client_Socket >= 0)
-                {                                client_is = Client_Socket % epoll_size;
+                {                                
+                    client_is = Client_Socket % epoll_size;
                     if(Client_Socket >= epoll_size){
                         if(G_Clients_Info.socket[client_is] != 0)
                         {
@@ -338,15 +341,17 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                         G_Clients_Info.used_state = false;
                         goto EPOLL_SERVER_LOOP_OUT;
                     }
-                                 }
-            EPOLL_SERVER_LOOP_OUT:
-            printf("");
+                }
+                EPOLL_SERVER_LOOP_OUT:
+                printf("");//For Goto EPOLL_SERVER_LOOP_OUT
 			}else{
+                
                 if(G_Clients_Info.connected_client_num > 0)
                 {
                     char *buf = malloc(TCP_RECV_BUFFER_SIZE);
                     memset(buf, 0x00, TCP_RECV_BUFFER_SIZE);
-                    str_len = recv(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, O_NONBLOCK);
+                    str_len = recvfrom(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, 0, NULL, NULL);
+                    //str_len = recv(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, O_NONBLOCK);
                     client_count == 0;
                     client_is = G_epoll_events[i].data.fd % epoll_size;
                     if(client_is >= 0)
@@ -360,13 +365,13 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                                 G_Clients_Info.used_state = true;
                                 G_Clients_Info.socket_message_seq[client_is]++;
                                 memset(push_data, 0x00, sizeof(uint8_t) * 1024);
-                                sprintf(push_data, HEADER_PAD,  //Client Data Protocol(Header:Hex_Sring,Payload:OCTETs)
-                                0x0, //:job_state(1)
-                                0x1, //protocol_type(1)
-                                G_epoll_events[i].data.fd, //client_fd(8)
-                                G_Clients_Info.socket_message_seq[client_is], //message_seq(2)
-                                str_len - 1);//message_size(2);
-                                strncat(push_data, buf, str_len);//data(payload_size)
+                                sprintf(push_data, HEADER_PAD,                                                  //Client Data Protocol(Header:Hex_Sring,Payload:OCTETs)
+                                                                0x0,                                            //:job_state(1)
+                                                                0x1,                                            //protocol_type(1)
+                                                                G_epoll_events[i].data.fd,                      //client_fd(8)
+                                                                G_Clients_Info.socket_message_seq[client_is],   //message_seq(2)
+                                                                str_len - 1);                                   //message_size(2);
+                                strncat(push_data, buf, str_len);                                               //data(payload_size)
                                 G_Clients_Info.used_state = false;
                                 size_t left_buf = F_i_RelayServer_Data_Push(Data_Info, (void *)push_data, str_len + HEADER_SIZE);
                                 printf("Data_Info->Data_Count - %d\n", Data_Info->Data_Count);
@@ -693,7 +698,7 @@ int f_s_RelayServer_Job_Process_Initial(struct data_header_info_t *Now_Header, u
             switch((int)Payload[1])
             {
                 case 1:
-                    if(Now_Header->Message_size  + 1 > 19) //Will Make the Over Recv Error Solution
+                    if(Now_Header->Message_size  + 1 >  (FIREWARE_HEADER_SIZE + FIREWARE_INFO_SIZE)) //Will Make the Solution about the Over Recv Error.
                     {
                         Now_Header->Job_State = 1;
                     }else{
@@ -703,7 +708,7 @@ int f_s_RelayServer_Job_Process_Initial(struct data_header_info_t *Now_Header, u
                     }
                     break;
                 case 3:
-                    if(Now_Header->Message_size + 1  > 19) //Will Make the Over Recv Error Solution
+                    if(Now_Header->Message_size + 1  > (PROGRAM_HEADER_SIZE + PROGRAM_INFO_SIZE)) //Will Make the Over Recv Error Solution
                     {
                         Now_Header->Job_State = 1;
                     }
@@ -776,7 +781,7 @@ int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header
             switch(Now_Header->Job_State)
             {
                 case FirmwareInfoReport:
-                    if(Now_Header->Message_size + 1 == 19 && Payload[Now_Header->Message_size] == 0xAA)
+                    if(Now_Header->Message_size + 1 == (FIREWARE_HEADER_SIZE + FIREWARE_INFO_SIZE) && Payload[Now_Header->Message_size] == 0xAA)
                     {
                         Now_Header->Job_State = 3;
                         Data[0] = *"3";
@@ -786,7 +791,7 @@ int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header
                     }
                     break;
                 case ProgramInfoReport:
-                    if(Now_Header->Message_size + 1 == 19 && Payload[Now_Header->Message_size] == 0xAA)
+                    if(Now_Header->Message_size + 1 == (PROGRAM_HEADER_SIZE + PROGRAM_INFO_SIZE) && Payload[Now_Header->Message_size] == 0xAA)
                     {
                         Now_Header->Job_State = 8;
                         Data[0] = *"8";
@@ -840,7 +845,6 @@ int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Heade
                     memset(http_socket_info->request, 0x00, sizeof(uint8_t) * http_socket_info->request_len);
                     memcpy(http_socket_info->request, request_buf, http_socket_info->request_len);
                 }
-                
                 break;
             default:
                 return -1;
@@ -917,7 +921,7 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Head
                 }
             } 
         }
-#if 0 
+#if 0
         if(strncmp(client_info_is.ID, ID_InData, 8))
         {
             Now_Header->Job_State = 0x1;
@@ -992,7 +996,6 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Head
     }else{
         return -1;
     }
-    
 
     return Now_Header->Job_State;
 }
@@ -1104,6 +1107,7 @@ size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body,
     }
     return request_len;
 }
+
 int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *http_socket_info, uint8_t **out_data)
 {
     size_t buf_len = 0;
@@ -1122,7 +1126,7 @@ int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct 
     struct hostent *hp;
     struct sockaddr_in addr;
     int on = 1, sockfd;     
-    if((hp = gethostbyname(HTTP_HOST_ADDRESS)) == NULL)
+    if((hp = gethostbyname("https://self-api.wtest.biz/v1/system/verCheck.php")) == NULL)
     {
         herror("gethostbyname");
         goto th_RelayServer_HTTP_Task_Receive_OUT;
