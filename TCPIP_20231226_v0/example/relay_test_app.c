@@ -28,8 +28,8 @@ int main()
     http_info.Request_Line.Method = "POST";
     http_info.Request_Line.To = DEFALUT_HTTP_SERVER_PROGRAM_URL;
     http_info.Request_Line.What = "HTTP";
-    http_info.Request_Line.Version = "1.0";
-    http_info.HOST = HTTP_HOST_ADDRESS;
+    http_info.Request_Line.Version = DEFALUT_HTTP_VERSION;
+    http_info.HOST = DEFALUT_HTTP_SERVER_PROGRAM_URL;
     http_info.PORT = HTTP_HOST_PORT;
     http_info.ACCEPT = "*/*";
     http_info.CONTENT_TYPE = "Application/octet-stream";
@@ -38,7 +38,9 @@ int main()
     G_HTTP_Request_Info_Fireware = malloc(sizeof(uint8_t) * DEFALUT_HTTP_INFO_SIZE);
 
     F_i_RelayServer_HTTP_Initial(G_HTTP_Request_Info_Program, &http_info);
-    http_info.Request_Line.To = DEFALUT_HTTP_SERVER_PROGRAM_URL;
+    
+    http_info.Request_Line.To = DEFALUT_HTTP_SERVER_FIREWARE_URL;
+    http_info.HOST = DEFALUT_HTTP_SERVER_FIREWARE_URL;
     F_i_RelayServer_HTTP_Initial(G_HTTP_Request_Info_Fireware, &http_info);
 
     int port = 50000;

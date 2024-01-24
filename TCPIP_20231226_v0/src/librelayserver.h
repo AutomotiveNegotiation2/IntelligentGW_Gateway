@@ -25,11 +25,13 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <arpa/inet.h>
 #include <linux/socket.h>
+#include <linux/if_packet.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <netdb.h>
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 
 #include <./memory_allocation_include.h>
 #include <./memory_allocation_api.h>
@@ -37,13 +39,11 @@
 
 #include <curl/curl.h>
 
-#define HTTP_HOST_ADDRESS "192.168.0.250"
 #define HTTP_HOST_PORT "50000"
 #define NOT_CODE_FINISH 0
 
 #define PROGRAM_HEADER_SIZE 6
 #define PROGRAM_INFO_SIZE 16
-
 #define FIREWARE_HEADER_SIZE 6
 #define FIREWARE_INFO_SIZE 16
 
@@ -56,7 +56,7 @@
 #define HEADER_SIZE 16
 #define HEADER_PAD "%01X%01X%08X%02X%04X"
 #define TCP_RECV_BUFFER_SIZE 1024
-
+#define DEFAULT_UDP_PORT 50000
 #define USED_DATA_LIST_SIZE 1024
 
 #define Relay_safefree(ptr) do { free((ptr)); (ptr) = NULL;} while(0)
@@ -218,8 +218,8 @@ bool F_RelayServer_Data_isEmpty(struct Used_Data_Info_t *Data_Info);
 
 #define DEFALUT_HTTP_INFO_SIZE 512
 #define DEFALUT_HTTP_METHOD "POST"
-#define DEFALUT_HTTP_SERVER_FIREWARE_URL "http://192.168.0.250/download/program/"
-#define DEFALUT_HTTP_SERVER_PROGRAM_URL "http://192.168.0.250/download/program/"
+#define DEFALUT_HTTP_SERVER_FIREWARE_URL "https://self-api.wtest.biz/v1/system/verCheck.php"
+#define DEFALUT_HTTP_SERVER_PROGRAM_URL "https://self-api.wtest.biz/v1/system/verCheck.php"
 #define DEFALUT_HTTP_VERSION "1.1"
 #define DEFALUT_HTTP_ACCEPT "*/*"
 #define DEFALUT_HTTP_CONTENT_TYPE "Application/octet-stream"
@@ -257,6 +257,7 @@ extern uint8_t *G_HTTP_Request_Info_Fireware;
 
 extern int F_i_RelayServer_HTTP_Initial(uint8_t *G_HTTP_Request_Info, struct http_info_t *http_info);
 size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body, size_t Body_Size, uint8_t *Http_Request);
+static void f_v_RelayServer_HTTP_Message_Parser(char *data_ptr, char *compare_word, void **ret, size_t *ret_len);
 
 int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *curl_info, uint8_t **out_data);
 int f_i_RelayServer_HTTP_WaitOnSocket(int sockfd, int for_recv, long timeout_ms);

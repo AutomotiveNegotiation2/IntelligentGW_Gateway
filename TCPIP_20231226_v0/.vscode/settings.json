@@ -44,7 +44,8 @@
     "librelayserver.h": "c",
     "string.h": "c",
     "memory_allocation_api.h": "c",
-    "signal.h": "c"
+    "signal.h": "c",
+    "memory_allocation_param.h": "c"
   },
   "C_Cpp_Runner.msvcWarnings": [
     "/W4",

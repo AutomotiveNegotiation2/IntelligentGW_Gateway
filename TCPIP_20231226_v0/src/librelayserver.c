@@ -113,7 +113,7 @@ void *Th_RelayServer_Job_Scheduler(void *Data)
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     struct Used_Data_Info_t *Data_Info = (struct Used_Data_Info_t *)Data;
-    int epoll_block_timer;
+    //int epoll_block_timer;
     for(;;)
     {        
         if(G_Clients_Info.connected_client_num > 0)
@@ -121,20 +121,20 @@ void *Th_RelayServer_Job_Scheduler(void *Data)
           if(Data_Info->Data_Count <= 0)
           { 
             F_Select_Timer(100 * 1000);
-            epoll_block_timer = 10;
           }else{
-            epoll_block_timer = 1000;
+            F_Select_Timer(1000);
           }
         }else{
-            epoll_block_timer = -1;
+            F_Select_Timer(1000 * 1000);
         }
-        epoll_wait(G_epfd, G_epoll_events, MAX_CLIENT_SIZE - 16, epoll_block_timer);
+        //epoll_wait(G_epfd, G_epoll_events, MAX_CLIENT_SIZE - 16, epoll_block_timer);
         if(G_Clients_Info.connected_client_num > 0 && G_Clients_Info.task_num < MAX_TASK_NUM)
         {
             for(int i = 0; i < Data_Info->Data_Count; i++)
             {
                 size_t data_size;
                 uint8_t *out_data = (uint8_t*)F_v_RelayServer_Data_Pop(Data_Info, &data_size);  
+
                 struct data_header_info_t Data_Header_Info = f_s_Parser_Data_Header(out_data, HEADER_SIZE);
                 int Client_is = Data_Header_Info.Client_fd % MAX_CLIENT_SIZE;
                 if(G_Clients_Info.socket[Client_is] != 0)
@@ -164,6 +164,7 @@ int f_i_RelayServer_Job_Task(uint8_t *Input_Data)
     if(Input_Data)
     {
         uint8_t *Data = Input_Data;
+
         struct data_header_info_t Data_Header_Info = f_s_Parser_Data_Header(Data, HEADER_SIZE);
         enum job_type_e Now_Job;
         for(;;)
@@ -274,7 +275,7 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
     int epoll_block_timer;
     long init_time = F_l_Timestamp();
     long now_time;
-    uint8_t push_data[1024];
+    uint8_t *push_data = malloc(1024);
     for(;;)
     {
         usleep(1000);
@@ -304,9 +305,69 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                 {
                     goto EPOLL_SERVER_LOOP_OUT;
                 }else{
-                    Client_Socket = accept(Socket_Info->Socket, (struct sockaddr*)&Client_Address, &adr_sz);
-                    printf("DEBUG:[%s][%d]-Client_Socket:%d\n", __func__, __LINE__, Client_Socket);
+                    char *buf = malloc(TCP_RECV_BUFFER_SIZE);
+                    memset(buf, 0x00, TCP_RECV_BUFFER_SIZE);
+                    struct sockaddr_in client_addr;
+                    socklen_t client_addr_len = sizeof(client_addr);
+                    str_len = recvfrom(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, 0, (struct sockaddr *)&(client_addr), &client_addr_len); 
+                    Client_Socket = htonl(client_addr.sin_addr.s_addr) % 0x000000FF; // The last number of senders' IPV4 address.  
+                    while(G_Clients_Info.used_state == true)
+                    {
+                        F_Select_Timer(1000);
+                    }
+                    G_Clients_Info.used_state = true;
+                    for(client_is = 0; i < G_Clients_Info.connected_client_num; client_is++)
+                    {
+                        if(G_Clients_Info.socket[client_is] == Client_Socket)
+                        {
+                            G_Clients_Info.life_timer[client_is] = F_l_Timestamp() + SOCKET_TIMER;
+                            G_Clients_Info.socket_message_seq[client_is] += 1;
+                            G_Clients_Info.used_state = false;
+                            break;
+                        }else{
+                            
+                        }
+                    }
+                    if(G_Clients_Info.used_state == true)
+                    {
+                        G_Clients_Info.socket[client_is] = Client_Socket;
+                        G_Clients_Info.life_timer[client_is] = F_l_Timestamp() + SOCKET_TIMER;
+                        G_Clients_Info.socket_message_seq[client_is] = 0;
+                        G_Clients_Info.connected_client_num = G_Clients_Info.connected_client_num + 1;
+                        G_Clients_Info.used_state = false;
+                    }
+                    sendto(G_epoll_events[i].data.fd, buf, str_len, 0, (struct sockaddr *)&(client_addr), client_addr_len);
+                    memset(push_data, 0x00, sizeof(uint8_t) * 1024);
+                    sprintf(push_data, HEADER_PAD,                                                  //Client Data Protocol(Header:Hex_Sring,Payload:OCTETs)
+                                                    0x0,                                            //:job_state(1)
+                                                    0x1,                                            //protocol_type(1)
+                                                    client_is,                                       //client_fd(8)
+                                                    G_Clients_Info.socket_message_seq[client_is],   //message_seq(2)
+                                                    str_len - 1);                                   //message_size(4);
+
+                    memcpy(push_data + HEADER_SIZE, buf, str_len);                                               
+                    G_Clients_Info.used_state = false;
+                    size_t left_buf = F_i_RelayServer_Data_Push(Data_Info, (void *)push_data, str_len + HEADER_SIZE);
+                    printf("Data_Info->Data_Count:%d, left_buf:%d\n", Data_Info->Data_Count, left_buf);
+                    if(left_buf > 0)
+                    {
+#ifdef _DEBUG_MODE
+                        G_Recv_Count++;
+#endif
+                        G_Clients_Info.task_running[client_is] = false;
+                        F_Print_Debug(222 ,"Receive_Data:");
+                        for(int i = 0;  i < str_len; i++)
+                        {
+                            printf("%02X", buf[i]);
+                        }
+                        printf("\n");
+                        if(left_buf >= 0)
+                        {
+                        }
+                    }else{
+                    }
                 }
+                #if 0 
                 if(Client_Socket >= 0)
                 {                                
                     client_is = Client_Socket % epoll_size;
@@ -342,15 +403,16 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                         goto EPOLL_SERVER_LOOP_OUT;
                     }
                 }
+    #endif
                 EPOLL_SERVER_LOOP_OUT:
                 printf("");//For Goto EPOLL_SERVER_LOOP_OUT
 			}else{
-                
+#if 0
                 if(G_Clients_Info.connected_client_num > 0)
                 {
                     char *buf = malloc(TCP_RECV_BUFFER_SIZE);
                     memset(buf, 0x00, TCP_RECV_BUFFER_SIZE);
-                    str_len = recvfrom(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, 0, NULL, NULL);
+                    //str_len = recvfrom(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, 0, NULL, NULL);
                     //str_len = recv(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, O_NONBLOCK);
                     client_count == 0;
                     client_is = G_epoll_events[i].data.fd % epoll_size;
@@ -405,6 +467,7 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                 }
             EPOLL_CLIENT_LOOP_OUT:
 printf("");
+#endif
             }
         }
 #if 1
@@ -632,9 +695,8 @@ enum job_type_e f_e_RelayServer_Job_Process_Do(struct data_header_info_t *Now_He
     int ret;
     enum job_type_e Now_Job_State = Now_Header->Job_State;
     enum job_type_e After_Job_State;
-    F_Print_Debug(222 ,"Press Enter Key ... Working [Job_Porcess_Do][Now State:%d]", Now_Header->Job_State);
-    getchar();
-    
+    F_Print_Debug(222 ,"\nPress Enter Key ... Working [Job_Porcess_Do][Now State:%d]\n", Now_Header->Job_State);
+    //getchar();
     switch(Now_Job_State)
     {
         case Initial: // Now_Job_State:0
@@ -690,15 +752,18 @@ Parameter[Out]
  */
 int f_s_RelayServer_Job_Process_Initial(struct data_header_info_t *Now_Header, uint8_t *Data)
 {
+
      if(Data)
     {
         char *Payload = (Data + HEADER_SIZE); 
+
         if(Payload[0] == 0x44) // Check STX
         {
             switch((int)Payload[1])
             {
                 case 1:
-                    if(Now_Header->Message_size  + 1 >  (FIREWARE_HEADER_SIZE + FIREWARE_INFO_SIZE)) //Will Make the Solution about the Over Recv Error.
+                    
+                    if(Now_Header->Message_size >  (FIREWARE_HEADER_SIZE + FIREWARE_INFO_SIZE + 1)) //Will Make the Solution about the Over Recv Error.
                     {
                         Now_Header->Job_State = 1;
                     }else{
@@ -708,7 +773,7 @@ int f_s_RelayServer_Job_Process_Initial(struct data_header_info_t *Now_Header, u
                     }
                     break;
                 case 3:
-                    if(Now_Header->Message_size + 1  > (PROGRAM_HEADER_SIZE + PROGRAM_INFO_SIZE)) //Will Make the Over Recv Error Solution
+                    if(Now_Header->Message_size > (PROGRAM_HEADER_SIZE + PROGRAM_INFO_SIZE + 1)) //Will Make the Over Recv Error Solution
                     {
                         Now_Header->Job_State = 1;
                     }
@@ -739,7 +804,7 @@ Parameter[Out]
  */
 int f_i_RelayServer_Job_Process_Finish(struct data_header_info_t *Now_Header, uint8_t *Data)
 {
-    F_Print_Debug(222 ,"Now Working Function %s\n\n", __func__);
+    F_Print_Debug(222 ,"\nNow Working Function %s\n", __func__);
     int ret;
     switch(Now_Header->Job_State)
     {
@@ -781,8 +846,10 @@ int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header
             switch(Now_Header->Job_State)
             {
                 case FirmwareInfoReport:
-                    if(Now_Header->Message_size + 1 == (FIREWARE_HEADER_SIZE + FIREWARE_INFO_SIZE) && Payload[Now_Header->Message_size] == 0xAA)
+                     printf("Now_Header->Message_size:%d, payload[23]:%02X\n", Now_Header->Message_size, Payload[Now_Header->Message_size] );
+                    if(Now_Header->Message_size == (FIREWARE_HEADER_SIZE + FIREWARE_INFO_SIZE + 1) && Payload[Now_Header->Message_size] == 0xAA)
                     {
+                       
                         Now_Header->Job_State = 3;
                         Data[0] = *"3";
                         return Now_Header->Job_State;
@@ -791,7 +858,7 @@ int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header
                     }
                     break;
                 case ProgramInfoReport:
-                    if(Now_Header->Message_size + 1 == (PROGRAM_HEADER_SIZE + PROGRAM_INFO_SIZE) && Payload[Now_Header->Message_size] == 0xAA)
+                    if(Now_Header->Message_size == (PROGRAM_HEADER_SIZE + PROGRAM_INFO_SIZE + 1) && Payload[Now_Header->Message_size] == 0xAA)
                     {
                         Now_Header->Job_State = 8;
                         Data[0] = *"8";
@@ -818,7 +885,7 @@ Parameter[Out]
  */
 int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Header, uint8_t **Data)
 {
-    F_Print_Debug(222 ,"Now Working Function %s\n\n", __func__);
+    F_Print_Debug(222 ,"\nNow Working Function %s\n", __func__);
     if(Data)
     {
         char *Payload = (*Data + HEADER_SIZE);
@@ -895,11 +962,12 @@ Parameter[Out]
  */
 int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Header, uint8_t **Data)
 { 
-    F_Print_Debug(222 ,"Now Working Function %s\n\n", __func__);
+    F_Print_Debug(222 ,"\nNow Working Function %s\n", __func__);
     if(Data)
     {
         char *Payload = (*Data + HEADER_SIZE);
-        struct client_data_info_t client_info_is;
+        #if 0 
+        struct client_data_info_t client_info_is;"\nNow Working Function %s\n"
         uint8_t *ID_InData = malloc(sizeof(uint8_t) * 8);
         uint8_t *Version_InData = malloc(sizeof(uint8_t) * 8);
         uint8_t *data_len = malloc(sizeof(uint32_t));
@@ -921,38 +989,19 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Head
                 }
             } 
         }
-#if 0
-        if(strncmp(client_info_is.ID, ID_InData, 8))
-        {
-            Now_Header->Job_State = 0x1;
-            *Data[0] = *("1");
-        }else{
-
-        }
-        if(strncmp(client_info_is.Version, Version_InData, 8))
-        {
-            Now_Header->Job_State = 0x1;
-            *Data[0] = *("1");
-        }else{
-
-        }
-        if(Now_Header->Message_size < *data_len)
-        {
-            Now_Header->Job_State = 0x1;
-            *Data[0] = *("1");
-        }else{
-        }
-#endif
+       
+        Relay_safefree(ID_InData);
+        Relay_safefree(Version_InData);
+        Relay_safefree(data_len);
+        #endif
 #if 1
-        for(int i = 0;  i < *data_len; i++)
+        for(int i = 0;  i < Now_Header->Message_size; i++)
 		{
 			printf("%C", Payload[i]);
 		}
 		printf("\n");
 #endif
-        Relay_safefree(ID_InData);
-        Relay_safefree(Version_InData);
-        Relay_safefree(data_len);
+
 //* ADD 230906
         struct MemoryStruct chunk;
         chunk.memory = malloc(1);  /* will be grown as needed by the realloc above */
@@ -1010,7 +1059,7 @@ Parameter[Out]
  */
 int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_Header, uint8_t **Data)
 {
-    F_Print_Debug(222 ,"Now Working Function %s\n\n", __func__);
+    F_Print_Debug(222 ,"\nNow Working Function %s\n", __func__);
      if(Data)
     {
         char *Payload = *Data + HEADER_SIZE;
@@ -1063,7 +1112,7 @@ int F_i_RelayServer_HTTP_Initial(uint8_t *G_HTTP_Request_Info, struct http_info_
         if(http_info->HOST){
             sprintf(request, "%s%s: %s:%s\r\n", request , "Host", http_info->HOST, http_info->PORT);
         }else{
-            sprintf(request, "%s%s: %s:%s\r\n", request , "Host", HTTP_HOST_ADDRESS, HTTP_HOST_PORT);
+            sprintf(request, "%s%s: %s:%s\r\n", request , "Host", DEFALUT_HTTP_SERVER_FIREWARE_URL, HTTP_HOST_PORT);
         }
         if(http_info->ACCEPT){
             sprintf(request, "%s%s: %s\r\n", request , "Accept", http_info->ACCEPT);
@@ -1110,109 +1159,173 @@ size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body,
 
 int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *http_socket_info, uint8_t **out_data)
 {
-    size_t buf_len = 0;
-    char buf[HTTP_BUFFER_SIZE];
+    F_Print_Debug(222 ,"\nNow Working Function %s\n", __func__);
+    CURL *curl = curl_easy_init();
     switch(Now_Header->Job_State)
     {
         case FirmwareInfoRequest:
+            curl_easy_setopt(curl, CURLOPT_URL, DEFALUT_HTTP_SERVER_FIREWARE_URL);
         case ProgramInfoRequest:            
+            curl_easy_setopt(curl, CURLOPT_URL, DEFALUT_HTTP_SERVER_PROGRAM_URL);
         break;
         default:
             Now_Header->Job_State = 1;
             goto th_RelayServer_HTTP_Task_Receive_OUT;
             break;
     }
+   
     int ret;
-    struct hostent *hp;
-    struct sockaddr_in addr;
-    int on = 1, sockfd;     
-    if((hp = gethostbyname("https://self-api.wtest.biz/v1/system/verCheck.php")) == NULL)
-    {
-        herror("gethostbyname");
-        goto th_RelayServer_HTTP_Task_Receive_OUT;
+    CURLcode res;
+    size_t buf_len = 0;
+    char buf[HTTP_BUFFER_SIZE];
+    int on = 1;
+    curl_socket_t sockfd;     
+
+    curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 1L);
+    res = curl_easy_perform(curl);
+    if(res != CURLE_OK) {
+        printf("Error: %s\n", curl_easy_strerror(res));
+        return 1;
     }
-    bcopy(hp->h_addr, &addr.sin_addr, hp->h_length);
-    addr.sin_port = htons(atoi(HTTP_HOST_PORT));
-    addr.sin_family = AF_INET;
-    sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (const char *)&on, sizeof(int));
-    f_i_RelayServer_TcpIp_Setup_Socket(&sockfd, 100, true);
-    ret = connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
-    if(ret < 0)
-    {
-        goto th_RelayServer_HTTP_Task_Receive_OUT;
-    }
+    
+    res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
+    
     size_t nsent_total = 0;
+   
     do 
     {
         size_t nsent;
-        nsent = 0;
-        nsent = write(sockfd, http_socket_info->request + nsent_total, http_socket_info->request_len - nsent_total);
-        nsent_total += nsent;
-        if(nsent < 0 && !f_i_RelayServer_HTTP_WaitOnSocket(sockfd, 1, HTTP_SOCKET_TIMEOUT)) 
+        do {
+            nsent = 0;
+            
+            res = curl_easy_send(curl, http_socket_info->request + nsent_total, http_socket_info->request_len - nsent_total, &nsent);
+            nsent_total += nsent;
+
+            if(res == CURLE_AGAIN && !f_i_RelayServer_HTTP_WaitOnSocket(sockfd, 0, HTTP_SOCKET_TIMEOUT)) {
+                printf("Error: timeout.\n");
+                return 1;
+            }
+        } while(res == CURLE_AGAIN);
+
+        if(res != CURLE_OK) 
         {
-            Now_Header->Job_State = 1;
-            goto th_RelayServer_HTTP_Task_Receive_OUT;
+            printf("Error: %s\n", curl_easy_strerror(res));
+            return 1;
         }
     } while(nsent_total < http_socket_info->request_len);
-    
-    memset(buf, 0x00, HTTP_BUFFER_SIZE);
-    size_t nread;
-    do {
-        nread = 0;
-        nread = read(sockfd, buf, sizeof(buf));  
-        buf_len += nread;
-        if(nread < 0 && !f_i_RelayServer_HTTP_WaitOnSocket(sockfd, 1, HTTP_SOCKET_TIMEOUT)) 
-        {
-            Now_Header->Job_State = 1;
-            goto th_RelayServer_HTTP_Task_Receive_OUT;
-        }
-    } while(nread != 0);
 
-     if(buf_len > 0)
+    memset(buf, 0x00, HTTP_BUFFER_SIZE);
+    buf_len = 0;
+    for(;;) 
     {
-        int http_body_len;
-        char* ptr = strstr(buf, "\r\n\r\n");
-        ptr = ptr + 4;
-        http_body_len = buf_len - (ptr - &buf[0] + 2); /// -2 delete /r/n
-        char http_body[http_body_len];
-        memcpy(http_body, ptr, http_body_len);
-        uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
-        memset(Http_Recv_data, 0x00, sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
-#if 0
-        for(int i = 0;  i < http_body_len; i++)
-		{
-			printf("%C", http_body[i]);
-		}
-		printf("\n");
-#endif
-        switch(Now_Header->Job_State)
+            size_t nread;
+            do {
+                nread = 0;
+                res = curl_easy_recv(curl, buf, sizeof(buf), &nread);
+
+                if(res == CURLE_AGAIN && !f_i_RelayServer_HTTP_WaitOnSocket(sockfd, 1, HTTP_SOCKET_TIMEOUT)) {
+                    printf("Error: timeout.\n");
+                    return 1;
+                }
+                buf_len += nread;
+            } while(res == CURLE_AGAIN);
+
+            if(res != CURLE_OK) {
+                printf("Error: %s\n", curl_easy_strerror(res));
+                break;
+            }
+
+            if(nread == 0) {
+                /* end of the response */
+                break;
+            }
+        if(buf_len > 0)
         {
-            case FirmwareInfoRequest:
-                Now_Header->Job_State = 4;
-                sprintf(Http_Recv_data, HEADER_PAD, 0x4, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, http_body_len);
-                Now_Header->Message_size = http_body_len;
-                break;
-            case ProgramInfoRequest:
-                Now_Header->Job_State = 9;
-                sprintf(Http_Recv_data, HEADER_PAD, 0x9, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, http_body_len);
-                Now_Header->Message_size = http_body_len;
-                break;
-            default:
+            int *Content_Length = malloc(sizeof(int));
+            size_t len = sizeof(int);
+            f_v_RelayServer_HTTP_Message_Parser(buf, "Content-Length: ", (void *)&Content_Length, &len);
+            
+            char *char_ret;
+            size_t message_len = 0;
+            f_v_RelayServer_HTTP_Message_Parser(buf, "idsUrl", (void *)&char_ret, &message_len);
+            char *http_body = malloc(sizeof(char) * message_len);
+            memcpy(http_body, char_ret, message_len);
+            if(message_len > 0)
+            {
+                int http_body_len = message_len;
+                uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
+                memset(Http_Recv_data, 0x00, sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
+                switch(Now_Header->Job_State)
+                {
+                    case FirmwareInfoRequest:
+                        Now_Header->Job_State = 4;
+                        sprintf(Http_Recv_data, HEADER_PAD, 0x4, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, http_body_len + HEADER_SIZE);
+                        Now_Header->Message_size = http_body_len;
+                        break;
+                    case ProgramInfoRequest:
+                        Now_Header->Job_State = 9;
+                        sprintf(Http_Recv_data, HEADER_PAD, 0x9, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, http_body_len + HEADER_SIZE);
+                        Now_Header->Message_size = http_body_len;
+                        break;
+                    default:
+                        memset(http_body, 0x00, http_body_len);
+                        Now_Header->Job_State = -1;
+                        goto th_RelayServer_HTTP_Task_Receive_OUT;
+                }
+                memcpy(Http_Recv_data + HEADER_SIZE, http_body, http_body_len);        
                 memset(http_body, 0x00, http_body_len);
-                Now_Header->Job_State = -1;
+                Relay_safefree(*out_data);
+                *out_data = Http_Recv_data;
+
                 goto th_RelayServer_HTTP_Task_Receive_OUT;
+            }
         }
-        memcpy(Http_Recv_data + HEADER_SIZE, http_body, http_body_len);        
-        memset(http_body, 0x00, http_body_len);
-        Relay_safefree(*out_data);
-        *out_data = Http_Recv_data;
     }
+    
 th_RelayServer_HTTP_Task_Receive_OUT:
     /* always cleanup */
     memset(buf, 0x00, sizeof(buf));
     close(sockfd);
+    curl_easy_cleanup(curl);
     return Now_Header->Job_State;
+}
+
+static void f_v_RelayServer_HTTP_Message_Parser(char *data_ptr, char *compare_word, void **ret, size_t *ret_len)
+{ 
+    int ptr_right = 0;
+    int compare_word_len = strlen(compare_word);
+    if(ret == NULL)
+    {
+        return;
+    }
+    while(data_ptr[ptr_right])
+    {
+        //printf("%c", data_ptr[ptr_right]);
+        if(strncmp(data_ptr + ptr_right,  compare_word, compare_word_len) == 0)
+        {
+            char *ptr = strtok(data_ptr + ptr_right, "\r\n");
+            strtok(ptr, "\":\"");
+            ptr = strtok(NULL, "\":\"");
+            *ret = ptr;
+            if(*ret_len == 0)
+            {
+               size_t char_len = 0;
+               while(ptr[char_len] != 34)
+               {
+                    char_len++;
+               }
+                *ret_len = char_len;
+                return;
+            }else{
+                int test = atoi(ptr);
+                memcpy(*ret, &test, *ret_len);
+                return;
+            }
+            break;
+        }
+        ptr_right++;
+    }
+    *ret_len = 0;
 }
 
 int f_i_RelayServer_HTTP_WaitOnSocket(int sockfd, int for_recv, long timeout_ms)
@@ -1250,6 +1363,7 @@ extern long F_l_Timestamp()
     out_time = (out_time* 1e6) + (tv.tv_nsec / 1e3);
 	return out_time;
 }
+
 size_t F_i_RelayServer_Data_Push(struct Used_Data_Info_t *Data_Info,  uint8_t *Data, size_t Data_size)
 {    if(Data)
     {
