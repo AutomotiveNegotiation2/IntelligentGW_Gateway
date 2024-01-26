@@ -53,8 +53,8 @@
 #define TASK_TIMER 3000000 // 1us
 #define DeviceName "eth0"
 
-#define HEADER_SIZE 16
-#define HEADER_PAD "%01X%01X%08X%02X%04X"
+#define HEADER_SIZE 20
+#define HEADER_PAD "%01X%01X%08X%02X%08X"
 #define TCP_RECV_BUFFER_SIZE 1024
 #define DEFAULT_UDP_PORT 50000
 #define USED_DATA_LIST_SIZE 1024
@@ -88,7 +88,7 @@ struct data_header_info_t
     uint8_t Protocol_Type;
     uint32_t Client_fd;
     uint16_t Message_seq;
-    uint16_t Message_size;
+    uint32_t Message_size;
 };
 
 enum job_type_e{

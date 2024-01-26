@@ -310,7 +310,7 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                     struct sockaddr_in client_addr;
                     socklen_t client_addr_len = sizeof(client_addr);
                     str_len = recvfrom(G_epoll_events[i].data.fd, buf, TCP_RECV_BUFFER_SIZE, 0, (struct sockaddr *)&(client_addr), &client_addr_len); 
-                    Client_Socket = htonl(client_addr.sin_addr.s_addr) % 0x000000FF; // The last number of senders' IPV4 address.  
+                    Client_Socket = (client_addr.sin_addr.s_addr); // The last number of senders' IPV4 address.  
                     while(G_Clients_Info.used_state == true)
                     {
                         F_Select_Timer(1000);
@@ -846,7 +846,6 @@ int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header
             switch(Now_Header->Job_State)
             {
                 case FirmwareInfoReport:
-                     printf("Now_Header->Message_size:%d, payload[23]:%02X\n", Now_Header->Message_size, Payload[Now_Header->Message_size] );
                     if(Now_Header->Message_size == (FIREWARE_HEADER_SIZE + FIREWARE_INFO_SIZE + 1) && Payload[Now_Header->Message_size] == 0xAA)
                     {
                        
@@ -893,10 +892,11 @@ int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Heade
         memset(http_socket_info, 0x00, sizeof(struct http_socket_info_t));
         uint8_t request_buf[HTTP_REQUEST_SIZE];
         memset(request_buf, 0x00, HTTP_REQUEST_SIZE);
+        printf("sizeof(Payload):%d\n", sizeof(Payload));
         switch(Now_Header->Job_State)
         {
             case FirmwareInfoRequest:
-                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Fireware, Payload, sizeof(Payload), request_buf);
+                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Fireware, Payload, Now_Header->Message_size + 1, request_buf);
                 if(http_socket_info->request_len > 0)
                 {
                     http_socket_info->request = malloc(sizeof(uint8_t) * http_socket_info->request_len);
@@ -905,7 +905,7 @@ int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Heade
                 }
                 break;
             case ProgramInfoRequest:
-                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Program, Payload, sizeof(Payload), request_buf);
+                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Program, Payload, Now_Header->Message_size + 1, request_buf);
                 if(http_socket_info->request_len > 0)
                 {
                     http_socket_info->request = malloc(sizeof(uint8_t) * http_socket_info->request_len);
@@ -915,10 +915,10 @@ int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Heade
                 break;
             default:
                 return -1;
-        }            
-            Now_Header->Job_State = f_i_RelayServer_HTTP_Task_Run(Now_Header, http_socket_info, Data);
-            Relay_safefree(http_socket_info->request);
-            Relay_safefree(http_socket_info);
+        }       
+        Now_Header->Job_State = f_i_RelayServer_HTTP_Task_Run(Now_Header, http_socket_info, Data);
+        Relay_safefree(http_socket_info->request);
+        Relay_safefree(http_socket_info);
     }else{
         return -1;
     }
@@ -930,8 +930,7 @@ struct MemoryStruct {
   size_t size;
 };
  
-static size_t
-WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
   size_t realsize = size * nmemb;
   struct MemoryStruct *mem = (struct MemoryStruct *)userp;
@@ -947,7 +946,6 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
   memcpy(&(mem->memory[mem->size]), contents, realsize);
   mem->size += realsize;
   mem->memory[mem->size] = 0;
-
   return realsize;
 }
 
@@ -994,23 +992,26 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Head
         Relay_safefree(Version_InData);
         Relay_safefree(data_len);
         #endif
-#if 1
-        for(int i = 0;  i < Now_Header->Message_size; i++)
-		{
-			printf("%C", Payload[i]);
-		}
-		printf("\n");
-#endif
 
 //* ADD 230906
-        struct MemoryStruct chunk;
-        chunk.memory = malloc(1);  /* will be grown as needed by the realloc above */
-        chunk.size = 0;    /* no data at this point */
+
         if(Now_Header->Message_size > 0)
         {
-            char *url = malloc(Now_Header->Message_size);
-            memcpy(url, Payload, Now_Header->Message_size);
-            
+            char *url = malloc(Now_Header->Message_size - HEADER_SIZE);
+            char *ptr = strtok(Payload, "\\");
+            int p;
+            memcpy(url, ptr, strlen(ptr));
+            p = strlen(ptr);
+            ptr = strtok(NULL, "\\");
+            while(ptr)
+            {
+                memcpy(url + p, ptr, strlen(ptr));
+                p += strlen(ptr);
+                ptr = strtok(NULL, "\\");
+            }
+            struct MemoryStruct chunk;
+            chunk.memory = malloc(1);  /* will be grown as needed by the realloc above */
+            chunk.size = 0;    /* no data at this point */
             curl_global_init(CURL_GLOBAL_ALL);
             CURL *curl_handle = curl_easy_init();
             curl_easy_setopt(curl_handle, CURLOPT_URL, url);
@@ -1020,28 +1021,32 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Head
             curl_easy_cleanup(curl_handle);
             curl_global_cleanup();
             Relay_safefree(url);
+            printf("chunk.size:%d\n", chunk.size);
+            printf("%s\n", chunk.memory);
+            uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (chunk.size + HEADER_SIZE));
+            memset(Http_Recv_data, 0x00, sizeof(uint8_t) * (chunk.size + HEADER_SIZE));
+            
+
+            switch(Now_Header->Job_State)
+            {
+                case FirmwareInfoResponse:
+                    Now_Header->Job_State = 0x5;
+                    sprintf(Http_Recv_data, HEADER_PAD, 0x5, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, chunk.size);
+                    *Data[0] = *("5");
+                    break;
+                case ProgramInfoResponse:
+                    Now_Header->Job_State = 0xA;
+                    sprintf(Http_Recv_data, HEADER_PAD, 0xA, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, chunk.size);
+                    *Data[0] = *("A");
+                    break;
+                default:
+                    return -1;
+            }
+            memcpy(Http_Recv_data + HEADER_SIZE, chunk.memory, chunk.size);
+            Relay_safefree(chunk.memory);
+            Relay_safefree(*Data);
+            *Data = Http_Recv_data;
         }
-        uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (chunk.size + HEADER_SIZE));
-        memset(Http_Recv_data, 0x00, sizeof(uint8_t) * (chunk.size + HEADER_SIZE));
-       
-        switch(Now_Header->Job_State)
-        {
-            case FirmwareInfoResponse:
-                Now_Header->Job_State = 0x5;
-                sprintf(Http_Recv_data, HEADER_PAD, 0x5, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, chunk.size);
-                *Data[0] = *("5");
-                break;
-            case ProgramInfoResponse:
-                Now_Header->Job_State = 0xA;
-                sprintf(Http_Recv_data, HEADER_PAD, 0xA, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, chunk.size);
-                *Data[0] = *("A");
-                break;
-            default:
-                return -1;
-        }
-        memcpy(Http_Recv_data + HEADER_SIZE, chunk.memory, chunk.size);
-        Relay_safefree(*Data);
-        *Data = Http_Recv_data;
     }else{
         return -1;
     }
@@ -1062,6 +1067,7 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
     F_Print_Debug(222 ,"\nNow Working Function %s\n", __func__);
      if(Data)
     {
+        printf("sizeof(sockaddr):%d, sizeof(in_addr):%d\n", sizeof(struct sockaddr), sizeof(struct in_addr));
         char *Payload = *Data + HEADER_SIZE;
         int ret;
         switch(Now_Header->Job_State)
@@ -1071,26 +1077,29 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
                 if(Now_Header->Message_size <= 0)
                 {
                     Now_Header->Job_State = 1;
-                    ret = send(Now_Header->Client_fd, Payload, 20, MSG_DONTWAIT);
+                    struct sockaddr_in client_addr;
+                    client_addr.sin_family = AF_INET;
+                    client_addr.sin_addr.s_addr =  G_Clients_Info.socket[Now_Header->Client_fd];
+                    client_addr.sin_port = DEFAULT_UDP_PORT;
+                    socklen_t client_addr_len = sizeof(client_addr);
+                    //ret = sendto(G_epoll_events[i].data.fd, Payload, 24, 0, (struct sockaddr *)&(client_addr), client_addr_len);
                     if(ret <= 0)
                     {
                     }else{
-#ifdef _DEBUG_MODE
-                        G_Send_Count++;
-                        printf("[DEBUG][%s][%d][%d/%d]\n", __func__, __LINE__, G_Recv_Count, G_Send_Count);
-#endif
+
                     }
                     break;
                 }else{
                     Now_Header->Job_State = 1;
-                    ret = send(Now_Header->Client_fd, Payload, Now_Header->Message_size, MSG_DONTWAIT);
+                    struct sockaddr_in client_addr;
+                    client_addr.sin_family = AF_INET;
+                    client_addr.sin_addr.s_addr =  G_Clients_Info.socket[Now_Header->Client_fd];
+                    client_addr.sin_port = DEFAULT_UDP_PORT;
+                    socklen_t client_addr_len = sizeof(client_addr);
+                    //ret = sendto(Now_Header->Client_fd, Payload, Now_Header->Message_size, 0, NULL, NULL);
                     if(ret <= 0)
                     {
                     }else{
-#ifdef _DEBUG_MODE
-                        G_Send_Count++;
-                        printf("[DEBUG][%s][%d][%d/%d]\n", __func__, __LINE__, G_Recv_Count, G_Send_Count);
-#endif
                     }
                 }
                 break;
@@ -1250,9 +1259,9 @@ int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct 
             f_v_RelayServer_HTTP_Message_Parser(buf, "idsUrl", (void *)&char_ret, &message_len);
             char *http_body = malloc(sizeof(char) * message_len);
             memcpy(http_body, char_ret, message_len);
-            if(message_len > 0)
+            int http_body_len =  message_len;
+            if(http_body_len > 0)
             {
-                int http_body_len = message_len;
                 uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
                 memset(Http_Recv_data, 0x00, sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
                 switch(Now_Header->Job_State)
@@ -1260,12 +1269,12 @@ int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct 
                     case FirmwareInfoRequest:
                         Now_Header->Job_State = 4;
                         sprintf(Http_Recv_data, HEADER_PAD, 0x4, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, http_body_len + HEADER_SIZE);
-                        Now_Header->Message_size = http_body_len;
+                        Now_Header->Message_size = http_body_len + HEADER_SIZE;
                         break;
                     case ProgramInfoRequest:
                         Now_Header->Job_State = 9;
                         sprintf(Http_Recv_data, HEADER_PAD, 0x9, 0x0, Now_Header->Client_fd, Now_Header->Message_seq, http_body_len + HEADER_SIZE);
-                        Now_Header->Message_size = http_body_len;
+                        Now_Header->Message_size = http_body_len + HEADER_SIZE;
                         break;
                     default:
                         memset(http_body, 0x00, http_body_len);
@@ -1276,7 +1285,6 @@ int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct 
                 memset(http_body, 0x00, http_body_len);
                 Relay_safefree(*out_data);
                 *out_data = Http_Recv_data;
-
                 goto th_RelayServer_HTTP_Task_Receive_OUT;
             }
         }
@@ -1300,20 +1308,18 @@ static void f_v_RelayServer_HTTP_Message_Parser(char *data_ptr, char *compare_wo
     }
     while(data_ptr[ptr_right])
     {
-        //printf("%c", data_ptr[ptr_right]);
         if(strncmp(data_ptr + ptr_right,  compare_word, compare_word_len) == 0)
         {
             char *ptr = strtok(data_ptr + ptr_right, "\r\n");
-            strtok(ptr, "\":\"");
-            ptr = strtok(NULL, "\":\"");
             *ret = ptr;
             if(*ret_len == 0)
             {
+                strtok(ptr, "\"");
+                strtok(NULL, "\"");
+                ptr = strtok(NULL, "\"");
+                *ret = ptr;
                size_t char_len = 0;
-               while(ptr[char_len] != 34)
-               {
-                    char_len++;
-               }
+                char_len = strlen(ptr);
                 *ret_len = char_len;
                 return;
             }else{
@@ -1535,7 +1541,7 @@ struct data_header_info_t f_s_Parser_Data_Header(char *Data, size_t Data_Size)
                 break;
             case 3:
                 out_data.Message_size = 0;
-                for(int i = 0; i < 4; i++)
+                for(int i = 0; i < 8; i++)
                 {
                     out_data.Message_size = out_data.Message_size * 16 + f_i_Hex2Dec(Data[12 + i]);
                 }
