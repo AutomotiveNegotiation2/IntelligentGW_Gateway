@@ -167,6 +167,16 @@ struct Used_Data_Info_t
     #endif
 
 };
+struct data_div_hdr_t
+{
+    uint32_t STX;
+    uint16_t type;
+    uint16_t div_len;
+    uint32_t total_data_len;
+    uint16_t div_num;
+    uint32_t ecu_timer_left;
+    uint16_t ETX;
+};
 
 extern enum debug_lever_e G_Debug_Level;
 extern struct ticktimer_t G_TickTimer;
