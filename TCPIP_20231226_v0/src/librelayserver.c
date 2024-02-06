@@ -1064,6 +1064,7 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
                     break;
                 }else{
                     Now_Header->Job_State = 1;
+                    char buf[128];
                     int sock = socket(AF_INET, SOCK_DGRAM, 0);
                     struct sockaddr_in client_addr;
                     client_addr.sin_family = AF_INET;
@@ -1078,10 +1079,13 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
                     div_hdr->total_data_len = Now_Header->Message_size;
                     div_hdr->div_num = (div_hdr->total_data_len / div_hdr->div_len);
                     div_hdr->ecu_timer_left = 0;
+                    div_hdr->crc32_payload = 0x00000000;
                     div_hdr->ETX = 0xEEFE;
-                    printf("DEBUG - [%s][%d]\n", __func__, __LINE__);
                     ret = sendto(sock, (void *)div_hdr, sizeof(struct data_div_hdr_t), 0, (struct sockaddr *)&(client_addr), client_addr_len);
                     free(div_hdr);
+
+                    str_len = recvfrom(sock, buf, 128, 0, (struct sockaddr *)&(client_addr), &client_addr_len); 
+
                     int p = 0;
                     while(0)
                     {
