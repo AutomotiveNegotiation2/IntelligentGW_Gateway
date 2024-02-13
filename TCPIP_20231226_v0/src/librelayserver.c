@@ -1073,12 +1073,12 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
                     socklen_t client_addr_len = sizeof(client_addr);
 
                     struct data_div_hdr_send_t *div_hdr_send = malloc(sizeof(struct data_div_hdr_send_t));
-                    
+                    //free(div_hdr_send);
                     div_hdr_send->STX = 0xAABBCCDD;
                     div_hdr_send->type = 0x0001;
                     div_hdr_send->div_len = 0x0200;
                     div_hdr_send->total_data_len = Now_Header->Message_size;
-                    div_hdr_send->div_num = (div_hdr_send->total_data_len / div_hdr_send->div_len);
+                    div_hdr_send->div_num = (div_hdr_send->total_data_len / div_hdr_send->div_len) + ((div_hdr_send->total_data_len % div_hdr_send->div_len) == 0 ? 0 : 1 );
                     div_hdr_send->ecu_timer_left = 0;
                     div_hdr_send->crc32_payload = 0x00000000;
                     div_hdr_send->ETX = 0xEEFE;
@@ -1086,59 +1086,48 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
                     time_t now = F_l_Timestamp();
                     ret = sendto(sock, (void *)div_hdr_send, sizeof(struct data_div_hdr_send_t), 0, (struct sockaddr *)&(client_addr), client_addr_len);
                     pthread_t Recv_Task_001;
-
-struct AA_t
-{
-    int *state;
-    time_t * ;
-
-    int sock;
-    struct sockaddr_in client_addr;
-    socklen_t client_addr_len;
-};
                     struct AA_t *recv_info = malloc(sizeof(struct AA_t));
-                    recv_info->state = malloc(sizeof(int));
-                    *recv_info->state = 0;
-                    recv_info->sock = sock;
-                    recv_info->client_addr = client_addr;
-                    recv_info->client_addr_len = client_addr_len;
-                    pthread_create(&Recv_Task_001, NULL, F_th_RelayServer_HTTP_Recv_Task, (void*)recv_info);
-                    pthread_detach(Recv_Task_001);
-                    void *F_th_RelayServer_HTTP_Recv_Task(void *d)
+                    //free(recv_info);
+                    
+                    while( F_l_Timestamp() - now > 1000 * 1000)
                     {
-                        struct recv_task_info_t *recv_info = (struct recv_task_info_t*)d;
-                        int ecu_left_time;
-                        uint32_t str_len;
                         str_len = recvfrom(recv_info->sock, buf, 128, 0, (struct sockaddr *)&(recv_info->client_addr), &(recv_info->client_addr_len));
                         if(str_len < 0)
                         {
-                            *recv_info->state = -1;
-                            return;
                         }else{
-                            struct data_div_hdr_send_t div_hdr_recv;
-                            memcpy(&div_hdr_recv, buf, sizeof(struct date_div_hdr_send_t));
-                            ecu_left_time = div_hdr_recv.ecu_timer_left;
-                            if(div_hdr_recv.ecu_timer_left <= 0)
+                            if(str_len == sizeof(struct date_div_hdr_send_t))
                             {
-                                *recv_info->state = -2;
-                                return;
+                                struct data_div_hdr_send_t div_hdr_recv;
+                                memcpy(&div_hdr_recv, buf, sizeof(struct date_div_hdr_send_t));
+                                ecu_left_time = div_hdr_recv.ecu_timer_left;
+                                if(div_hdr_recv.type == 2)
+                                {
+                                    recv_info->state = malloc(sizeof(int));
+                                    //free(recv_info->state);
+                                    *recv_info->state = 0;
+                                    recv_info->ecu_left_time = malloc(sizeof(uint32_t));
+                                    //free(recv_info->ecu_left_time);
+                                    recv_info->sock = sock;
+                                    recv_info->client_addr = client_addr;
+                                    recv_info->client_addr_len = client_addr_len;
+                                    pthread_create(&Recv_Task_001, NULL, f_th_RelayServer_HTTP_Recv_Task, (void*)recv_info);
+                                    pthread_detach(Recv_Task_001);
+                                    break;
+                                }
+                            }else{
                             }
-                            *recv_info->state = 1;
                         }
                     }
-                    do{}
-                        str_len = recvfrom(sock, buf, 128, 0, (struct sockaddr *)&(client_addr), &client_addr_len); 
-                        memset(div_hdr_recv, 0x00, sizeof(struct data_div_hdr_send_t));
-                        memcpy(div_hdr_recv, buf, sizeof(struct data_div_hdr_send_t));
-                        uint32_t ecu_timer_left =  
-                        if(div_hdr_recv > 0)
-                    }
-                    while((F_l_Timestamp() - now) > 5 || div_hdr_recv->ecu_timer_left != 0);
- 
-                    int p = 0;
-                    while(0)
-                    {
-                        if((int)(Now_Header->Message_size / 100) >= 0)
+         
+                    struct data_p_hdr_t *payload_hdr = malloc(sizeof(struct data_p_hdr_t));
+                    payload_hdr->payload_len = div_hdr_send->total_data_len;
+                    payload_hdr->data_len = div_hdr_send->div_len;
+                    payload_hdr->payload_now = 0;
+                    
+                    while(*recv_info->state >= 0)
+                    { 
+                        payload_hdr->payload_now = recv_info->state;
+                        if((int)(Now_Header->Message_size / 100) >= 0) 
                         {
                             ret = sendto(sock, Payload + (100 * p), 100, 0, (struct sockaddr *)&(client_addr), client_addr_len);
                         }else{
@@ -1151,6 +1140,9 @@ struct AA_t
                     {
                     }else{
                     }
+                    free(recv_info->ecu_left_time);
+                    free(recv_info->state);
+                    free(recv_info);
                     free(div_hdr_send);
                 }
                 break;
@@ -1603,4 +1595,56 @@ struct data_header_info_t f_s_Parser_Data_Header(char *Data, size_t Data_Size)
         Data_Num++;
     }
     return out_data;
+}
+
+static void *f_th_RelayServer_HTTP_Recv_Task(void *d)
+{
+    struct recv_task_info_t *recv_info = (struct recv_task_info_t*)d;
+    int ecu_left_time;
+    uint32_t str_len;
+    time_t start_time = F_l_Timestamp();
+    
+    while(1)
+    {
+        str_len = recvfrom(recv_info->sock, buf, 128, 0, (struct sockaddr *)&(recv_info->client_addr), &(recv_info->client_addr_len));
+        if(str_len < 0)
+        {
+            *recv_info->state = -1;
+            return;
+        }else{
+            if(str_len == sizeof(struct date_div_hdr_send_t))
+            {
+                struct data_div_hdr_send_t div_hdr_recv;
+                memcpy(&div_hdr_recv, buf, sizeof(struct date_div_hdr_send_t));
+                ecu_left_time = div_hdr_recv.ecu_timer_left;
+                if(div_hdr_recv.ecu_timer_left <= 0)
+                {
+                    *recv_info->state = -3;
+                    return;
+                }
+                *recv_info->state = recv_info->div_num;
+                recv_info->ecu_left_time = div_hdr_recv.ecu_timer_left;
+            }else if(str_len == sizeof(struct data_p_hdr_t))
+            {
+                struct data_p_hdr_t payload_hdr;
+                memcpy(&payload_hdr, buf, sizeof(struct data_p_hdr_t));
+                if(payload_hdr->payload_now == payload_hdr->payload_len)
+                {
+                    *recv_info->state = -10;
+                    return;
+                }else{
+                    *recv_info->state = payload_hdr->payload_now;
+                }
+                
+            }else{
+                *recv_info->state = -2;
+                return;
+            }
+        }
+    }
+    if(F_l_Timestamp() - start_time > 1000 * 1000)
+    {
+        *recv_info->state = -4;
+        return;
+    }
 }

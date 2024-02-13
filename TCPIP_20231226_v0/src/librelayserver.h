@@ -175,9 +175,14 @@ struct data_div_hdr_t
     uint32_t total_data_len;
     uint16_t div_num;
     uint32_t ecu_timer_left;
+    uint32_t crc32_payload;
     uint16_t ETX;
 };
-
+struct data_p_hdr_t{
+    uint32_t payload_len;
+    uint32_t payload_now;
+    uint32_t data_len;
+};
 extern enum debug_lever_e G_Debug_Level;
 extern struct ticktimer_t G_TickTimer;
 extern struct clients_info_t G_Clients_Info;
@@ -261,7 +266,15 @@ struct http_info_t
     char *ACCEPT;
     char *CONTENT_TYPE;
 };
+struct HTTP_Recv_task_info_t
+{
+    int *state;
+    uint32_t *ecu_left_time;
 
+    int sock;
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len;
+};
 extern uint8_t *G_HTTP_Request_Info_Program;
 extern uint8_t *G_HTTP_Request_Info_Fireware;
 
@@ -271,4 +284,4 @@ static void f_v_RelayServer_HTTP_Message_Parser(char *data_ptr, char *compare_wo
 
 int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *curl_info, uint8_t **out_data);
 int f_i_RelayServer_HTTP_WaitOnSocket(int sockfd, int for_recv, long timeout_ms);
-
+static void *f_th_RelayServer_HTTP_Recv_Task(void *d);
