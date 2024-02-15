@@ -40,10 +40,6 @@ int main(void)
     
     char data[] = {0x44, 0x01, 0x41, 0x42, 0x43, 0x44, 0x31, 0x32, 0x33, 0x34, 0x45, 0x46, 0x47, 0x48, 0x35, 0x36, 0x37, 0x38, 0xAA, 0x11, 0x12};
     
-    if(gethostbyname("https://self-api.wtest.biz/v1/system/verCheck.php"))
-    {
-        herror("gethostbyname");
-    }
     char *request = malloc(sizeof(char) * 10240);
     sprintf(request, "%s %s %s\r\n", "POST", URL, "HTTP/1.1");
 
