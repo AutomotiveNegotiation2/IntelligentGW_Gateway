@@ -167,7 +167,7 @@ struct Used_Data_Info_t
     #endif
 
 };
-struct data_div_hdr_t
+struct data_div_hdr_send_t
 {
     uint32_t STX;
     uint16_t type;
@@ -179,9 +179,8 @@ struct data_div_hdr_t
     uint16_t ETX;
 };
 struct data_p_hdr_t{
+    uint32_t div_num;
     uint32_t payload_len;
-    uint32_t payload_now;
-    uint32_t data_len;
 };
 extern enum debug_lever_e G_Debug_Level;
 extern struct ticktimer_t G_TickTimer;
