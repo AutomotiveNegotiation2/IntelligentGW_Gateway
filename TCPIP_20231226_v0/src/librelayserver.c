@@ -1599,11 +1599,125 @@ struct data_header_info_t f_s_Parser_Data_Header(char *Data, size_t Data_Size)
 
 static void *f_th_RelayServer_HTTP_Recv_Task(void *d)
 {
-    struct recv_task_info_t *recv_info = (struct recv_task_info_t*)d;
+    struct http_recv_task_info_t *recv_info = (struct http_recv_task_info_t*)d;
     int ecu_left_time;
     uint32_t str_len;
     time_t start_time = F_l_Timestamp();
     
+    while(1)
+    {
+        str_len = recvfrom(recv_info->sock, buf, 128, 0, (struct sockaddr *)&(recv_info->client_addr), &(recv_info->client_addr_len));
+        if(str_len < 0)
+        {
+            *recv_info->state = -1;
+            return;
+        }else{
+            if(str_len == sizeof(struct date_div_hdr_send_t))
+            {
+                struct data_div_hdr_send_t div_hdr_recv;
+                memcpy(&div_hdr_recv, buf, sizeof(struct date_div_hdr_send_t));
+                ecu_left_time = div_hdr_recv.ecu_timer_left;
+                if(div_hdr_recv.ecu_timer_left <= 0)
+                {
+                    *recv_info->state = -3;
+                    return;
+                }
+                *recv_info->state = recv_info->div_num;
+                recv_info->ecu_left_time = div_hdr_recv.ecu_timer_left;
+            }else if(str_len == sizeof(struct data_p_hdr_t))
+            {
+                struct data_p_hdr_t payload_hdr;
+                memcpy(&payload_hdr, buf, sizeof(struct data_p_hdr_t));
+                if(payload_hdr->payload_now == payload_hdr->payload_len)
+                {
+                    *recv_info->state = -10;
+                    return;
+                }else{
+                    *recv_info->state = payload_hdr->payload_now;
+                }
+                
+            }else{
+                *recv_info->state = -2;
+                return;
+            }
+        }
+    }
+    if(F_l_Timestamp() - start_time > 1000 * 1000)
+    {
+        *recv_info->state = -4;
+        return;
+    }
+}
+
+enum nubo_connection_state{
+    GW_SLEEP_CONNECTIONING_NUBO = 0,
+    GW_TRYING_CONNECTION_NUBO = 10;
+    GW_TRYING_CONNECTION_NUBO_REPEAT_1,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_2,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_3,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_4,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_5,
+
+    GW_CONNECTED_BY_NUBO = 20;
+    GW_NO_REPLY_ACK = 50;
+}
+struct nubo_recv_task_info_t
+{
+    int *task_state;
+
+    int sock;
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len;
+    enum nubo_connection_state state;
+    char ACK[4];
+    uint32_t lift_time;
+};
+static void *f_th_RelayServer_NUBO_Client_Task(void *d)
+{
+    struct nubo_recv_task_info_t *nubo_info = (struct nubo_recv_task_info_t*)d;
+    int ret;
+
+    // Using_Timer
+    int32_t TimerFd = timerfd_create(CLOCK_REALTIME, 0);//CLOCK_MONOTONIC(시각동기화 미사용시)
+    struct itimerspec itval;
+    struct timespec tv;
+    uint32_t timer_tick_usec = 100 * 1000; //ms
+    uint64_t res = 0;
+    clock_gettime(CLOCK_REALTIME, &tv); 
+    itval.it_interval.tv_sec = 0;
+    itval.it_interval.tv_nsec = (timer_tick_usec % 1000000) * 1e3;
+    itval.it_value.tv_sec = tv.tv_sec + 1;
+    itval.it_value.tv_nsec = 0;
+    ret = timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
+    nubo_info->life_time = 0;
+    sprintf(nubo_info->ACK,"%s%02X", "ACK", nubo_info->life_time % 0xFF);
+
+
+    uint32_t timer_100ms_tick = 0;
+    int tick_count_10ms = 0;
+    for(;;)
+    {      
+        ret = read(TimerFd, &res, sizeof(uint64_t));
+        switch(timer_100ms_tick % 10)
+        {
+            default:break;
+            case 0:
+            {
+                srand(time(NULL));//Random 값의 Seed 값 변경
+                usleep(((rand() % 20) + 4) * 1000) // 매초 + 4~20ms의 랜덤값을 갖는 시간에 동작
+                if(timer_100ms_tick >= UINT32_MAX - 0xFF)//256마다 0으로 리셋 (timer_100ms_tick = 256 -> 0)
+                {
+                    timer_100ms_tick = 0;
+                }else{
+                    timer_100ms_tick++; 
+                }
+                break;
+            }
+        }
+    }
+    return NULL;
+    
+
     while(1)
     {
         str_len = recvfrom(recv_info->sock, buf, 128, 0, (struct sockaddr *)&(recv_info->client_addr), &(recv_info->client_addr_len));

@@ -265,7 +265,7 @@ struct http_info_t
     char *ACCEPT;
     char *CONTENT_TYPE;
 };
-struct HTTP_Recv_task_info_t
+struct http_recv_task_info_t
 {
     int *state;
     uint32_t *ecu_left_time;
@@ -274,6 +274,15 @@ struct HTTP_Recv_task_info_t
     struct sockaddr_in client_addr;
     socklen_t client_addr_len;
 };
+struct nubo_recv_task_info_t
+{
+    int *state;
+
+    int sock;
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len;
+};
+
 extern uint8_t *G_HTTP_Request_Info_Program;
 extern uint8_t *G_HTTP_Request_Info_Fireware;
 
