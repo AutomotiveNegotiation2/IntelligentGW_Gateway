@@ -274,13 +274,38 @@ struct http_recv_task_info_t
     struct sockaddr_in client_addr;
     socklen_t client_addr_len;
 };
+
+#define DEFAULT_NUBO_ADDRESS "192.168.0.10"
+#define DEFAULT_NUBO_PORT "8888"
+
+enum nubo_connection_state{
+    GW_SLEEP_CONNECTIONING_NUBO = 0,
+    GW_TRYING_CONNECTION_NUBO = 10,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_1,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_2,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_3,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_4,
+    GW_TRYING_CONNECTION_NUBO_REPEAT_5,
+
+    GW_SEND_REPLY_TO_NUBO = 40,
+    GW_CONNECTED_BY_NUBO = 50,
+    GW_WAITING_REPLY_ACK_0,
+    GW_NO_REPLY_ACK_1,
+    GW_NO_REPLY_ACK_2,
+    GW_NO_REPLY_ACK_3,
+    GW_NO_REPLY_ACK_4,
+    GW_NO_REPLY_ACK_5;
+};
+
 struct nubo_recv_task_info_t
 {
-    int *state;
-
+    int *task_info_state;
     int sock;
-    struct sockaddr_in client_addr;
-    socklen_t client_addr_len;
+    struct sockaddr_in server_addr;
+    socklen_t server_addr_len;
+    enum nubo_connection_state state;
+    char ACK[4];
+    uint32_t lift_time;
 };
 
 extern uint8_t *G_HTTP_Request_Info_Program;

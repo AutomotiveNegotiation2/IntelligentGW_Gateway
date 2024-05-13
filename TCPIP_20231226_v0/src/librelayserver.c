@@ -1136,10 +1136,6 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
                         p++;
                     }
 
-                    if(ret <= 0)
-                    {
-                    }else{
-                    }
                     free(recv_info->ecu_left_time);
                     free(recv_info->state);
                     free(recv_info);
