@@ -1671,18 +1671,18 @@ static void *f_th_RelayServer_NUBO_Client_Task(void *d)
     int tick_count_10ms = 0;
 
     srand(time(NULL));//Random 값의 Seed 값 변경
-    int timer_op_1s = ((rand() % 9) + 0);
+    uint32_t timer_op_1s = ((rand() % 9) + 0);
                 
     for(;;)
     {      
         ret = read(TimerFd, &res, sizeof(uint64_t));
-        switch(timer_100ms_tick % 10)
+        switch((timer_100ms_tick % 10) - timer_op_1s)
         {
             default:break;
-            case timer_op_1s:
+            case 0:
             {
                 srand(time(NULL));//Random 값의 Seed 값 변경
-                usleep(((rand() % 20) + 4) * 1000) // 매초 + 4~20ms의 랜덤값을 갖는 시간에 동작
+                usleep(((rand() % 20) + 4) * 1000); // 매초 + 4~20ms의 랜덤값을 갖는 시간에 동작
                 switch(nubo_info->state)
                 {
                     default:break;
@@ -1691,7 +1691,7 @@ static void *f_th_RelayServer_NUBO_Client_Task(void *d)
                         if(!nubo_info->task_info_state)//Task  생성 시 socket 정보를 입력 안함;
                         {
                             nubo_info->task_info_state = malloc(sizeof(int));
-                            nubo_info->task_info_state = 2;
+                            *nubo_info->task_info_state = 2;
 
                             nubo_info->sock = socket(PF_INET, SOCK_DGRAM, 0);
                             
@@ -1699,7 +1699,7 @@ static void *f_th_RelayServer_NUBO_Client_Task(void *d)
                             nubo_info->serv_adr.sin_family = AF_INET;
                             nubo_info->serv_adr.sin_addr.s_addr = inet_addr(DEFAULT_NUBO_ADDRESS);
                             nubo_info->serv_adr.sin_port = htons(atoi(DEFAULT_NUBO_PORT));
-                        }else if(nubo_info->task_info_state == 1){
+                        }else if(*nubo_info->task_info_state == 1){
                             printf("!!\n");
                         }
                         //f_i_RelayServer_TcpIp_Setup_Socket(&sock, 50, true);
@@ -1743,16 +1743,15 @@ static void *f_th_RelayServer_NUBO_Client_Task(void *d)
                         struct sockaddr_in from_adr;
                         socklen_t from_adr_sz;
                         ret = recvfrom(nubo_info->sock , nubo_info->ACK, 4, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
-                        if(ret == 0)
-                        {
-                            nubo_info->state++;
-                        }else(ret > 0)
-                        {
+                        if(ret <= 0){
+                            nubo_info->state += 1;
+                        }else{
                             nubo_info->state = GW_CONNECTED_BY_NUBO; 
                         }
                     }
                     case GW_CONNECTED_BY_NUBO:
                     { 
+                        #if 0 //Received DNM_SIGNAL from Novo
                         if(DNM_Req_Signal || DNM_Done_Signal)
                         {
                             if(DNM_Req_Signal)
@@ -1768,11 +1767,12 @@ static void *f_th_RelayServer_NUBO_Client_Task(void *d)
                                 nubo_info->state = GW_TRYING_CONNECTION_NUBO;
                             }
                         } 
-                        }
+                        #endif
+                        
                         nubo_info->life_time++;
                         if(nubo_info->life_time % 5 == 4)
                         {
-                            nubo_info->ACK[4] = (char)((nubo_info->life_time / 5) % 0xFF);
+                            nubo_info->ACK[3] = (char)((nubo_info->life_time / 5) % 0xFF);
                             ret = sendto(nubo_info->sock , nubo_info->ACK, 4, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
                             if(ret > 0)
                             {
@@ -1787,6 +1787,8 @@ static void *f_th_RelayServer_NUBO_Client_Task(void *d)
                     }
                     case GW_NO_REPLY_ACK_5:
                     {
+                        struct sockaddr_in from_adr;
+                        socklen_t from_adr_sz;
                         ret = recvfrom(nubo_info->sock , nubo_info->ACK, 4, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
                         if(ret > 0)
                         {
@@ -1819,13 +1821,11 @@ static void *f_th_RelayServer_NUBO_Client_Task(void *d)
             }
         }
     }
-    if(nubo_info->task_info_state == 2)
+    
+    if(*nubo_info->task_info_state == 2)
     {
-        nubo_info->task_info_state = 0;
+        *nubo_info->task_info_state = 0;
         free(nubo_info->task_info_state);
     }
 
-    return NULL;
 }
-
-  
