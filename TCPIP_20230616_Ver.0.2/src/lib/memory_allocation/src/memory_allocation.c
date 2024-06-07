@@ -14,7 +14,7 @@ struct Memory_Used_Info_t F_s_Memory_Initial(size_t Using_Size)
         Used_Info.Memroy_Full_Size = Using_Size;
         Used_Info.Memroy_Full_Start = malloc(sizeof(uint8_t) * Used_Info.Memroy_Full_Size);
         Used_Info.Memroy_Full_Now = Used_Info.Memroy_Full_Start;
-        int Memroy_Used_List_Num = 0;
+        Used_Info.Memroy_Used_List_Num = 0;
     }
     return Used_Info;
 }
