@@ -1,5 +1,7 @@
 #include <librelayserver.h>
 
+#define DEBUG_1 printf("[DEBUG][%s][%d]\n", __func__, __LINE__);
+
 enum debug_lever_e G_Debug_Level;
 struct ticktimer_t G_TickTimer;
 struct clients_info_t G_Clients_Info;

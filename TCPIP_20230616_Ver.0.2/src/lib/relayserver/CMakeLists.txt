@@ -6,6 +6,7 @@ add_library(${TARGET_LIB} SHARED
 )
 target_compile_options(${TARGET_LIB} PRIVATE -Wall)
 target_include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT}/src/lib/relayserver/src/)
+target_include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT}/src/lib/memory_allocation/src/)
 target_include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT}/src/lib/include/)
 
 target_link_libraries(${TARGET_LIB} PRIVATE pthread curl memory_allocation)
@@ -15,9 +16,7 @@ add_custom_command(TARGET ${TARGET_LIB} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E re
 add_custom_command(TARGET ${TARGET_LIB} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy lib${TARGET_LIB}.* ${OUTPUT_DIR}/ )
 
 set(OUTPUT_INCLUDE_DIR ${PROJECT_ROOT}/output/include/)
-set(TARGET_HEADER relayserver*.*)
-add_custom_command(TARGET ${TARGET_LIB} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove ${PROJECT_ROOT}/src/lib/include/${TARGET_HEADER})
-add_custom_command(TARGET ${TARGET_LIB} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove ${OUTPUT_INCLUDE_DIR}/${TARGET_HEADER})
+set(TARGET_HEADER *.h)
 add_custom_command(TARGET ${TARGET_LIB} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_ROOT}/src/${TARGET_HEADER} ${PROJECT_ROOT}/src/lib/include/)
 add_custom_command(TARGET ${TARGET_LIB} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_ROOT}/src/${TARGET_HEADER} ${OUTPUT_INCLUDE_DIR}/)
                   
