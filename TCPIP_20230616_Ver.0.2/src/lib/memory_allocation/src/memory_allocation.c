@@ -109,7 +109,6 @@ void *F_v_Memory_Data_Pop(struct Memory_Used_Data_Info_t *Data_Info, size_t *out
     {
         pthread_mutex_lock(&Data_Info->mtx);
         data_size = data_size;
-        out_data = out_data;
         pthread_mutex_unlock(&Data_Info->mtx);
         return NULL;
     }else{

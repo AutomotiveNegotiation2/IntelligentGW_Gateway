@@ -92,8 +92,12 @@ int F_i_RelayServer_TcpIp_Get_Address(char *Device_Name, char Output_IPv4Adrress
 		F_RealyServer_Print_Debug(1, "[Info][%s] %s IP Address is %s\n", __func__, Device_Name, Output_IPv4Adrress);
 	}
     ret = f_i_RelayServer_TcpIp_Setup_Socket(&IP_Parsing_Socket, 100, true);
+    if(ret < 0)
+    {
+        return -1;
+    }
 	close(IP_Parsing_Socket);
-
+    return  0;
 }
 /* 
 Brief:
@@ -144,114 +148,119 @@ void *Th_RelayServer_Job_Task(void *Data)
     ret = timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
 
     uint32_t tick_count_10ms = 0;
+    tick_count_10ms = (uint32_t)tick_count_10ms;
     int Task_Timer_now = Task_Timer_Max;
     size_t Before_data_count = (size_t)(*(Data_Info->Data_Count));
     float Timer_Index;
     while(1)
     {   
         ret = read(TimerFd, &res, sizeof(res));
-        
-        switch((size_t)(*(Data_Info->Data_Count)))
+        if(ret < 0)
         {
-            case 0:
-                Task_Timer_now = Task_Timer_Max;
-                clock_gettime(CLOCK_MONOTONIC, &tv); 
-                itval.it_interval.tv_nsec = (Task_Timer_now % 1000000) * 1e3;
-                itval.it_value.tv_sec = tv.tv_sec + 1;
-                timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
-                Before_data_count = 0;
-                break;
-            case MEMORY_USED_DATA_LIST_SIZE:
-                Task_Timer_now = Task_Timer_min;
-                clock_gettime(CLOCK_MONOTONIC, &tv); 
-                itval.it_interval.tv_nsec = (Task_Timer_now % 1000000) * 1e3;
-                itval.it_value.tv_sec = tv.tv_sec + 1;
-                timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
-                break;
-            default:
-                if(Before_data_count + 20 < (size_t)(*(Data_Info->Data_Count)))
-                {
-                    Before_data_count = (size_t)(*(Data_Info->Data_Count));
-                    Timer_Index = ((size_t)*(Data_Info->Data_Count) * 1e4) / (MEMORY_USED_DATA_LIST_SIZE * 1e4);
-                    Task_Timer_now = (Task_Timer_Max * 1e4) * (1e4 - Timer_Index);
-                    Task_Timer_now = Task_Timer_now / 1e4;
-                    if(Task_Timer_now < Task_Timer_min)
-                    {
-                       Task_Timer_now = Task_Timer_min;
-                    }                    
+            
+        }else{
+            switch((size_t)(*(Data_Info->Data_Count)))
+            {
+                case 0:
+                    Task_Timer_now = Task_Timer_Max;
                     clock_gettime(CLOCK_MONOTONIC, &tv); 
                     itval.it_interval.tv_nsec = (Task_Timer_now % 1000000) * 1e3;
                     itval.it_value.tv_sec = tv.tv_sec + 1;
                     timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
-                }
-                
-                break;
-            break;
-        }
-
-        size_t data_size = 0;
-        for(int data_is = 0; data_is < (size_t)*(Data_Info->Data_Count); data_is++)
-        {
-            if(F_Memory_Data_isEmpty(Data_Info))
-            {
-            }else{
-                uint8_t *out_data = (uint8_t*)F_v_Memory_Data_Pop(Data_Info, &data_size); 
-               //F_RealyServer_Print_Debug(6,"[Debug][%s][%d][Pop_Data:%s/%d][%d]\n", __func__, __LINE__, out_data, data_size, (size_t)*(Data_Info->Data_Count));
-                if(out_data)
-                {
-                    struct data_header_info_t Data_Header_Info = f_s_Parser_Data_Header(out_data, HEADER_SIZE);
-                    F_RealyServer_Print_Debug(6,"[Debug][%s][%d][Client:%u]\n", __func__, __LINE__, Data_Header_Info.Client_fd);
-                    enum job_type_e Now_Job;
-                    if(*G_Clients_Info.connected_client_num > 0)
-                    { 
-                        for(int client_is = 0; client_is < MAX_CLIENT_SIZE; client_is++)
+                    Before_data_count = 0;
+                    break;
+                case MEMORY_USED_DATA_LIST_SIZE:
+                    Task_Timer_now = Task_Timer_min;
+                    clock_gettime(CLOCK_MONOTONIC, &tv); 
+                    itval.it_interval.tv_nsec = (Task_Timer_now % 1000000) * 1e3;
+                    itval.it_value.tv_sec = tv.tv_sec + 1;
+                    timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
+                    break;
+                default:
+                    if(Before_data_count + 20 < (size_t)(*(Data_Info->Data_Count)))
+                    {
+                        Before_data_count = (size_t)(*(Data_Info->Data_Count));
+                        Timer_Index = ((size_t)*(Data_Info->Data_Count) * 1e4) / (MEMORY_USED_DATA_LIST_SIZE * 1e4);
+                        Task_Timer_now = (Task_Timer_Max * 1e4) * (1e4 - Timer_Index);
+                        Task_Timer_now = Task_Timer_now / 1e4;
+                        if(Task_Timer_now < Task_Timer_min)
                         {
-                            if(G_Clients_Info.socket[client_is] == Data_Header_Info.Client_fd)
-                            {
-                                Now_Job = f_e_RelayServer_Job_Process_Do(&Data_Header_Info, &out_data, client_is, Data_Info);
-                                F_RealyServer_Print_Debug(6,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
-                                switch(Now_Job)
-                                {
-                                    case Initial:
-                                    case FirmwareInfoReport:
-                                    case FirmwareInfoResponse:
-                                    
-                                    case FirmwareInfoIndication:
-
-                                    case ProgramInfoReport: 
-                                    case ProgramInfoResponse:
-                                    case ProgramInfoIndication:
-
-                                    case HandOverReminingData:
-                                        F_RealyServer_Print_Debug(1,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
-                                        F_RealyServer_Print_Debug(5,"[Debug][%s][%d][Push:%s/%d]\n", __func__, __LINE__, out_data, data_size);
-                                        F_i_Memory_Data_Push(Data_Info, out_data, data_size);
-                                        break;
-
-                                    case FirmwareInfoRequest:
-                                    case ProgramInfoRequest:
-                                    case Finish:
-                                        F_RealyServer_Print_Debug(1,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
-                                        break;
-                                    default:
-                                        F_RealyServer_Print_Debug(1,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
-                                        break; 
-                                }  
-                                break;
-                            }else{
-                                    if(0)//(client_is == *G_Clients_Info.connected_client_num - 1)
-                                    {
-                                        F_RealyServer_Print_Debug(1, "[Debug][%s][Client Closed:%d]\n", __func__, G_Clients_Info.socket[client_is]);
-                                        F_RealyServer_Print_Debug(1, "[Debug][%s][Client Closed:%d]\n", __func__, Data_Header_Info.Client_fd);
-                                    }
-                            }
-                        }
+                        Task_Timer_now = Task_Timer_min;
+                        }                    
+                        clock_gettime(CLOCK_MONOTONIC, &tv); 
+                        itval.it_interval.tv_nsec = (Task_Timer_now % 1000000) * 1e3;
+                        itval.it_value.tv_sec = tv.tv_sec + 1;
+                        timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
                     }
                     
-                    F_RealyServer_Print_Debug(4,"[Debug][%s][Free:%d, Address:%p]\n", __func__, __LINE__, out_data);
-                    free(out_data);
+                    break;
+                break;
+            }
+        
+            size_t data_size = 0;
+            for(int data_is = 0; data_is < (size_t)*(Data_Info->Data_Count); data_is++)
+            {
+                if(F_Memory_Data_isEmpty(Data_Info))
+                {
+                }else{
+                    uint8_t *out_data = (uint8_t*)F_v_Memory_Data_Pop(Data_Info, &data_size); 
+                //F_RealyServer_Print_Debug(6,"[Debug][%s][%d][Pop_Data:%s/%d][%d]\n", __func__, __LINE__, out_data, data_size, (size_t)*(Data_Info->Data_Count));
+                    if(out_data)
+                    {
+                        struct data_header_info_t Data_Header_Info = f_s_Parser_Data_Header((char*)out_data, HEADER_SIZE);
+                        F_RealyServer_Print_Debug(6,"[Debug][%s][%d][Client:%u]\n", __func__, __LINE__, Data_Header_Info.Client_fd);
+                        enum job_type_e Now_Job;
+                        if(*G_Clients_Info.connected_client_num > 0)
+                        { 
+                            for(int client_is = 0; client_is < MAX_CLIENT_SIZE; client_is++)
+                            {
+                                if(G_Clients_Info.socket[client_is] == Data_Header_Info.Client_fd)
+                                {
+                                    Now_Job = f_e_RelayServer_Job_Process_Do(&Data_Header_Info, &out_data, client_is, Data_Info);
+                                    F_RealyServer_Print_Debug(6,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
+                                    switch(Now_Job)
+                                    {
+                                        case Initial:
+                                        case FirmwareInfoReport:
+                                        case FirmwareInfoResponse:
+                                        
+                                        case FirmwareInfoIndication:
+
+                                        case ProgramInfoReport: 
+                                        case ProgramInfoResponse:
+                                        case ProgramInfoIndication:
+
+                                        case HandOverReminingData:
+                                            F_RealyServer_Print_Debug(1,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
+                                            F_RealyServer_Print_Debug(5,"[Debug][%s][%d][Push:%s/%d]\n", __func__, __LINE__, out_data, data_size);
+                                            F_i_Memory_Data_Push(Data_Info, out_data, data_size);
+                                            break;
+
+                                        case FirmwareInfoRequest:
+                                        case ProgramInfoRequest:
+                                        case Finish:
+                                            F_RealyServer_Print_Debug(1,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
+                                            break;
+                                        default:
+                                            F_RealyServer_Print_Debug(1,"[Info][%s] Now_Job:%d\n", __func__, Now_Job);
+                                            break; 
+                                    }  
+                                    break;
+                                }else{
+                                        if(0)//(client_is == *G_Clients_Info.connected_client_num - 1)
+                                        {
+                                            F_RealyServer_Print_Debug(1, "[Debug][%s][Client Closed:%d]\n", __func__, G_Clients_Info.socket[client_is]);
+                                            F_RealyServer_Print_Debug(1, "[Debug][%s][Client Closed:%d]\n", __func__, Data_Header_Info.Client_fd);
+                                        }
+                                }
+                            }
+                        }
+                        
+                        F_RealyServer_Print_Debug(4,"[Debug][%s][Free:%d, Address:%p]\n", __func__, __LINE__, out_data);
+                        free(out_data);
+                    }
+                
                 }
-              
             }
         }
 
@@ -398,7 +407,7 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                 if(str_len > 0)
                 {
                     pthread_mutex_lock(&G_Clients_Info.mtx);
-                    client_count == 0;
+                    client_count = 0;
                     for(client_is = 0; client_is < MAX_CLIENT_SIZE; client_is++)
                     {
                         if(G_Clients_Info.socket[client_is] != 0)
@@ -420,13 +429,13 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                     {
                         G_Clients_Info.socket_message_seq[client_is]++;
                         uint8_t *push_data = malloc(sizeof(uint8_t) * (str_len + HEADER_SIZE));
-                        sprintf(push_data, HEADER_PAD,  //Client Data Protocol(Header:Hex_Sring,Payload:OCTETs)
+                        sprintf((char*)push_data, HEADER_PAD,  //Client Data Protocol(Header:Hex_Sring,Payload:OCTETs)
                         0x0, //:job_state(1)
                         0x1, //protocol_type(1)
                         epoll_events[i].data.fd, //client_fd(8)
                         G_Clients_Info.socket_message_seq[client_is], //message_seq(2);
                         str_len - 1);//message_size(2);
-                        strncat(push_data, buf, str_len);//data(payload_size)
+                        strncat((char*)push_data, buf, str_len);//data(payload_size)
                         F_RealyServer_Print_Debug(6,"[Debug][%s][%d][Push_Data:%s/%d]\n", __func__, __LINE__, push_data, str_len + HEADER_SIZE);
                         size_t left_buf = F_i_Memory_Data_Push(&G_Data_Info, (void *)push_data, str_len + HEADER_SIZE);
                         pthread_mutex_unlock(&G_Clients_Info.mtx);
@@ -489,6 +498,7 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
 #endif
     }
     printf("While_Loop_Broken!%d\n", __LINE__);
+    return;
 }
 /* 
 Brief:The Socket binding.
@@ -508,7 +518,7 @@ int f_i_RelayServer_TcpIp_Bind(int *Server_Socket, struct sockaddr_in Socket_Add
         if(ret < 0 ) 
         {
             F_RealyServer_Print_Debug(0, "[Error][%s][Return_Value:%d]", __func__, ret);
-            if(Retry_Count == 9)
+            if(Retry_Count == Retry_Max)
             {
                 close(*Server_Socket);
                 return -1;
@@ -526,7 +536,7 @@ int f_i_RelayServer_TcpIp_Bind(int *Server_Socket, struct sockaddr_in Socket_Add
             return 0;
         }
     }while(Retry_Count < 10);
-        
+    return 0;
 }
 
 /* 
@@ -567,7 +577,7 @@ int f_i_RelayServer_TcpIp_Setup_Socket(int *Socket, int Timer, bool Linger)
             return -1;
         }
     }
-
+    return 0;
 }
 
 /* 
@@ -609,18 +619,12 @@ void* Th_i_RelayServer_TickTimer(void *Data)
 {
     Data = Data;
     int ret;
-    int epoll_size = 1;
-    int epoll_event_count;
-    struct epoll_event *epoll_events= malloc(sizeof(struct epoll_event) * epoll_size);
-    struct epoll_event epoll_event;
-	int epfd = epoll_create(epoll_size);
     // Using_Timer
     int32_t TimerFd = timerfd_create(CLOCK_MONOTONIC, 0);
     struct itimerspec itval;
-    struct timespec tv, tv_1;
+    struct timespec tv;
     uint32_t usec = 10 * 1000;
     uint64_t res;
-    int mTime = 100;
 
     clock_gettime(CLOCK_MONOTONIC, &tv); 
     itval.it_interval.tv_sec = 0;
@@ -629,36 +633,38 @@ void* Th_i_RelayServer_TickTimer(void *Data)
     itval.it_value.tv_nsec = 0;
     ret = timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
 
-    epoll_event.events = EPOLLIN;
-	epoll_event.data.fd = TimerFd;	
-	epoll_ctl(epfd, EPOLL_CTL_ADD, TimerFd, &epoll_event);
-
     uint32_t tick_count_10ms = 0;
+    tick_count_10ms = (uint32_t)tick_count_10ms;
 
     while(1)
     {   
-        epoll_event_count = epoll_wait(epfd, epoll_events, epoll_size, -1);
         ret = read(TimerFd, &res, sizeof(res));
-        G_TickTimer.G_10ms_Tick = tick_count_10ms;
-        switch(tick_count_10ms % 10)
+        if(ret < 0)
         {
-            case 0:
+
+        }else{
+            G_TickTimer.G_10ms_Tick = tick_count_10ms;
+            switch(tick_count_10ms % 10)
             {
-                G_TickTimer.G_100ms_Tick++; 
-                break;
+                case 0:
+                {
+                    G_TickTimer.G_100ms_Tick++; 
+                    break;
+                }
+                default: break;
             }
-            default: break;
-        }
-        switch(tick_count_10ms % 100)
-        {
-            case 0:
+            switch(tick_count_10ms % 100)
             {
-                G_TickTimer.G_1000ms_Tick++;
-                break;
+                case 0:
+                {
+                    G_TickTimer.G_1000ms_Tick++;
+                    break;
+                }
+                default:break;
             }
-            default:break;
+            tick_count_10ms++;
         }
-        tick_count_10ms++;
+
     }
 }
 
@@ -744,7 +750,7 @@ struct client_data_info_t f_s_RelayServer_Job_Process_Initial(struct data_header
     struct client_data_info_t out_data;
     if(Data)
     {
-        char *Payload = (Data + HEADER_SIZE); 
+        uint8_t *Payload = (Data + HEADER_SIZE); 
         if(Payload[0] == 0x44) // Check STX
         {
             switch((int)Payload[1])
@@ -800,7 +806,6 @@ int f_i_RelayServer_Job_Process_Finish(struct data_header_info_t *Now_Hader, uin
 {
     if(Data)
     {
-        int ret;
         switch(Now_Hader->Job_State)
         {
             case Finish:
@@ -830,7 +835,7 @@ int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Hader,
 {
     if(Data)
     {
-        char *Payload = (Data + HEADER_SIZE); 
+        uint8_t *Payload = (Data + HEADER_SIZE); 
 
         if(Payload[0] == 0x44) // Check STX
         {
@@ -883,7 +888,7 @@ int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Hader
 {
     if(Data)
     {
-        char *Payload = (*Data + HEADER_SIZE); 
+        uint8_t *Payload = (*Data + HEADER_SIZE); 
         struct curl_info_t *curl_info = malloc(sizeof(struct curl_info_t));
         F_RealyServer_Print_Debug(4,"[Debug][%s][malloc:%d, Address:%p]\n", __func__, __LINE__, curl_info);
         switch(Now_Hader->Job_State)
@@ -923,7 +928,7 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Hade
 { 
     if(Data)
     {
-        char *Payload = (*Data + HEADER_SIZE); 
+        uint8_t *Payload = (*Data + HEADER_SIZE); 
         switch(Now_Hader->Job_State)
         {
             case FirmwareInfoResponse:
@@ -967,7 +972,7 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Hade
             } 
 
         }
-        if(strncmp(client_info_is.ID, ID_InData, 8))
+        if(strncmp((char*)client_info_is.ID, (char*)ID_InData, 8))
         {
             F_RealyServer_Print_Debug(0, "[Error][%s][Incorrect ID:%s/%s]\n",__func__, client_info_is.ID, ID_InData);
             Now_Hader->Job_State = 0x1;
@@ -975,7 +980,7 @@ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Hade
         }else{
             
         }
-        if(strncmp(client_info_is.Version, Version_InData, 8))
+        if(strncmp((char*)client_info_is.Version, (char*)Version_InData, 8))
         {
             F_RealyServer_Print_Debug(0, "[Error][%s][Incorrect VERSION:%s/%s]\n",__func__, client_info_is.Version, Version_InData);
             Now_Hader->Job_State = 0x1;
@@ -1018,7 +1023,7 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_Ha
     
     if(Data)
     {
-        char *Payload = *Data + HEADER_SIZE;
+        uint8_t *Payload = *Data + HEADER_SIZE;
         int ret;
         switch(Now_Hader->Job_State)
         {
@@ -1041,7 +1046,7 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_Ha
                     }
                     uint8_t *out_data = malloc(sizeof(uint8_t) * HEADER_SIZE + 20);
                     F_RealyServer_Print_Debug(4,"[Debug][%s][malloc:%d, Address:%p]\n", __func__, __LINE__, out_data);
-                    sprintf(out_data, HEADER_PAD, Now_Hader->Job_State, 0x0, Now_Hader->Client_fd, Now_Hader->Message_seq, 0);
+                    sprintf((char*)out_data, HEADER_PAD, Now_Hader->Job_State, 0x0, Now_Hader->Client_fd, Now_Hader->Message_seq, 0);
                     memset(Payload + 16, 0x00, 4);
                     memcpy(out_data + HEADER_SIZE, Payload, 20);
                     F_RealyServer_Print_Debug(4,"[Debug][%s][Free:%d, Address:%p]\n", __func__, __LINE__,  *Data);
@@ -1065,28 +1070,28 @@ int F_i_RelayServer_HTTP_Initial(uint8_t *G_HTTP_Request_Info, struct http_info_
     uint8_t *request = G_HTTP_Request_Info;
     if(http_info)
     {
-        sprintf(request, "%s %s %s/%s\r\n", http_info->Request_Line.Method, http_info->Request_Line.To, http_info->Request_Line.What, http_info->Request_Line.Version);
+        sprintf((char*)request, "%s %s %s/%s\r\n", http_info->Request_Line.Method, http_info->Request_Line.To, http_info->Request_Line.What, http_info->Request_Line.Version);
         if(http_info->HOST){
-            sprintf(request, "%s%s: %s:%s\r\n", request , "Host", http_info->HOST, http_info->PORT);
+            sprintf((char*)request, "%s%s: %s:%s\r\n", request , "Host", http_info->HOST, http_info->PORT);
         }else{
-            sprintf(request, "%s%s: %s:%s\r\n", request , "Host", DEFALUT_HTTP_SERVER_FIREWARE_URL, "80");
+            sprintf((char*)request, "%s%s: %s:%s\r\n", request , "Host", DEFALUT_HTTP_SERVER_FIREWARE_URL, "80");
         }
         if(http_info->ACCEPT){
-            sprintf(request, "%s%s: %s\r\n", request , "Accept", http_info->ACCEPT);
+            sprintf((char*)request, "%s%s: %s\r\n", request , "Accept", http_info->ACCEPT);
         }else{
-            sprintf(request, "%s%s: %s\r\n", request , "Accept", DEFALUT_HTTP_ACCEPT);
+            sprintf((char*)request, "%s%s: %s\r\n", request , "Accept", DEFALUT_HTTP_ACCEPT);
         }
         if(http_info->CONTENT_TYPE){
-            sprintf(request, "%s%s: %s\r\n", request , "Content-Type", http_info->CONTENT_TYPE);
+            sprintf((char*)request, "%s%s: %s\r\n", request , "Content-Type", http_info->CONTENT_TYPE);
         }else{
-            sprintf(request, "%s%s: %s\r\n", request , "Content-Type", DEFALUT_HTTP_CONTENT_TYPE);
+            sprintf((char*)request, "%s%s: %s\r\n", request , "Content-Type", DEFALUT_HTTP_CONTENT_TYPE);
         }
     }else
     {
-        sprintf(request, "%s %s %s/%s\r\n", DEFALUT_HTTP_METHOD, DEFALUT_HTTP_SERVER_FIREWARE_URL, "HTTP", DEFALUT_HTTP_VERSION);
-        sprintf(request, "%s%s: %s\r\n", request , "Host", DEFALUT_HTTP_SERVER_FIREWARE_URL);
-        sprintf(request, "%s%s: %s\r\n", request , "Accept", DEFALUT_HTTP_ACCEPT);
-        sprintf(request, "%s%s: %s\r\n", request , "Content-Type", DEFALUT_HTTP_CONTENT_TYPE);
+        sprintf((char*)request, "%s %s %s/%s\r\n", DEFALUT_HTTP_METHOD, DEFALUT_HTTP_SERVER_FIREWARE_URL, "HTTP", DEFALUT_HTTP_VERSION);
+        sprintf((char*)request, "%s%s: %s\r\n", request , "Host", DEFALUT_HTTP_SERVER_FIREWARE_URL);
+        sprintf((char*)request, "%s%s: %s\r\n", request , "Accept", DEFALUT_HTTP_ACCEPT);
+        sprintf((char*)request, "%s%s: %s\r\n", request , "Content-Type", DEFALUT_HTTP_CONTENT_TYPE);
     }
 
     return 0;
@@ -1105,9 +1110,9 @@ size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body,
     {
         if(Body_Size > 0)
         {
-            sprintf(request, "%s%s: %d\r\n", request , "Content-Length", Body_Size);
+            sprintf((char*)request, "%s%s: %d\r\n", request , "Content-Length", Body_Size);
         }
-        sprintf(request, "%s\r\n", request);
+        sprintf((char*)request, "%s\r\n", request);
         request_len = strlen(request) + Body_Size;
         memcpy(request + strlen(request), Body, Body_Size);
         *Http_Request = malloc(sizeof(uint8_t) * request_len);

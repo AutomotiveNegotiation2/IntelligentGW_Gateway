@@ -18,9 +18,9 @@ add_custom_command(TARGET ${TARGET_APP} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E re
 add_custom_command(TARGET ${TARGET_APP} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_APP} ${OUTPUT_DIR}/${TARGET_APP})
                
 set(OUTPUT_INCLUDE_DIR ${PROJECT_ROOT}/output/include/)
-set(TARGET_HEADER relay_test_app.*)
+set(TARGET_HEADER relay_test_app*.*)
 add_custom_command(TARGET ${TARGET_APP} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove ${PROJECT_ROOT}/src/lib/include/${TARGET_HEADER})
 add_custom_command(TARGET ${TARGET_APP} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove ${OUTPUT_INCLUDE_DIR}/${TARGET_HEADER})
-add_custom_command(TARGET ${TARGET_APP} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_ROOT}/include/${TARGET_HEADER} ${PROJECT_ROOT}/src/lib/include/)
-add_custom_command(TARGET ${TARGET_APP} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_ROOT}/include/${TARGET_HEADER} ${OUTPUT_INCLUDE_DIR}/)
+add_custom_command(TARGET ${TARGET_APP} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_ROOT}/src/${TARGET_HEADER} ${PROJECT_ROOT}/src/lib/include/)
+add_custom_command(TARGET ${TARGET_APP} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_ROOT}/src/${TARGET_HEADER} ${OUTPUT_INCLUDE_DIR}/)
                   
