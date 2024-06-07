@@ -1,4 +1,4 @@
-#include <./librelayserver.h>
+#include <librelayserver.h>
 
 enum debug_lever_e G_Debug_Level;
 struct ticktimer_t G_TickTimer;

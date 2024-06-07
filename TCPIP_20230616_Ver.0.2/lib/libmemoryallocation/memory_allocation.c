@@ -163,7 +163,7 @@ int F_i_Memory_Data_Reading(struct Memory_Used_Data_Info_t *Data_Info, uint8_t *
     }else{
         out_data = (uint8_t*)F_v_Memory_Data_Pop(Data_Info, &data_size);
         F_i_Memory_Data_Push(Data_Info, out_data, data_size);
-        retF_Memory_Data_isEmpty(Data_Info)urn 0;
+        return 0;
     }
 }
 
