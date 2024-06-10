@@ -473,7 +473,7 @@ void* th_RelayServer_TcpIp_Task_Server(void *socket_info)
                 }else if(G_Clients_Info.socket[i]  != 0)
                 {   
                     if(G_Clients_Info.Life_Timer[i] <= G_TickTimer.G_100ms_Tick)
-                    {
+                    {z
                         F_RealyServer_Print_Debug(7,"[Debug][%s][close:%d, Timer:%d/%d, socket:%d]\n", __func__, __LINE__, G_Clients_Info.Life_Timer[i] ,G_TickTimer.G_100ms_Tick ,G_Clients_Info.socket[i]);DEBUG_1
                         pthread_mutex_lock(&G_Clients_Info.mtx);DEBUG_1
                         G_Clients_Info.socket[i] = 0;DEBUG_1
