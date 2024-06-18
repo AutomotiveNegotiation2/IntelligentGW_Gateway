@@ -1,6 +1,8 @@
 #include <librelayserver.h>
 
 #define DEBUG_1 //printf("[DEBUG][%s][%d]\n", __func__, __LINE__);
+#define clear() printf("\033[H\033[J")
+#define gotoxy(x,y) printf("\033[%d;%dH", (y), (x))
 
 enum debug_lever_e G_Debug_Level;
 struct ticktimer_t G_TickTimer;
@@ -53,6 +55,8 @@ int main()
 
     struct NUVO_recv_task_info_t nubo_task;
     pthread_t Task_ID_NOBO;
+    clear();
+    gotoxy(1,0);
     printf("[DRIVING HISTORY] START NUVO Job Task.\n");
     pthread_create(&Task_ID_NOBO, NULL, Th_RelayServer_NUVO_Client_Task, (void*)&nubo_task);
     pthread_detach(Task_ID_NOBO);

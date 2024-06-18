@@ -237,12 +237,12 @@ enum NUVO_connection_state{
     GW_TRYING_CONNECTION_NUVO_REPEAT_4,
     GW_TRYING_CONNECTION_NUVO_REPEAT_5,
     
-    GW_WATING_REPLY_FROM_NUVO = 20,
-    GW_RECEIVED_REPLY_FROM_NUVO = 40,
+    GW_WATING_REPLY_CONNECTION_FROM_NUVO = 20,
 
-    GW_REQUEST_SAVE_DRIVING_HISTORY_TO_NUVO = 50,
-    
-
+    GW_REQUEST_SAVE_DRIVING_HISTORY_TO_NUVO = 30,
+    GW_WATING_REPLY_SAVE_DRIVING_HISTORY_FROM_NUVO
+    GW_WAIT_DONE_SAVE_DRIVING_HISTORY_FROM_ECU, 
+    GW_REQUEST_DONE_SAVE_DRIVING_HISTORY_TO_NUVO,
 };
 
 struct NUVO_recv_task_info_t
@@ -253,7 +253,7 @@ struct NUVO_recv_task_info_t
     socklen_t server_addr_len;
     enum NUVO_connection_state state;
     char ACK[4];
-    uint32_t life_time;
+    int life_time;
 };
 
 extern void *Th_RelayServer_NUVO_Client_Task(void *d);
