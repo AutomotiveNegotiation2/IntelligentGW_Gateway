@@ -11,8 +11,10 @@ INCLUDE_DIRECTORIES(output/include/)
 LINK_DIRECTORIES(ouput/lib/)
 
 ADD_SUBDIRECTORY(src/app/remove)
+
 ADD_SUBDIRECTORY(src/lib/memory_allocation)
 ADD_SUBDIRECTORY(src/lib/relayserver)
+ADD_SUBDIRECTORY(src/lib/parson)
 
 ADD_SUBDIRECTORY(src/app/relayserver_test)
 

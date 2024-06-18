@@ -7,8 +7,9 @@ target_compile_options(${TARGET_APP} PRIVATE -Wall)
 target_include_directories(${TARGET_APP} PRIVATE ${PROJECT_ROOT}/src/lib/include/)
 target_include_directories(${TARGET_APP} PRIVATE ${PROJECT_ROOT}/src/lib/memory_allocation/src/)
 target_include_directories(${TARGET_APP} PRIVATE ${PROJECT_ROOT}/src/lib/relayserver/src/)
+target_include_directories(${TARGET_APP} PRIVATE ${PROJECT_ROOT}/src/lib/parson/src/)
 
-target_link_libraries(${TARGET_APP} PRIVATE pthread curl memory_allocation relayserver)
+target_link_libraries(${TARGET_APP} PRIVATE pthread curl memory_allocation relayserver parson)
 
 target_sources(${TARGET_APP} PRIVATE
                 src/relay_test_app.c

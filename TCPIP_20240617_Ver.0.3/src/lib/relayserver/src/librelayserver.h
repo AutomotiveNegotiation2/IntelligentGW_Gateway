@@ -8,6 +8,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <dirent.h>
 
   /* Epoll */
   #include <poll.h>
@@ -31,6 +32,8 @@
 #include <./memory_allocation_include.h>
 #include <./memory_allocation_api.h>
 #include <./memory_allocation_param.h>
+
+#include <./parson.h>
 
 #include <curl/curl.h>
 
@@ -161,6 +164,7 @@ static int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *No
 static int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Hader, uint8_t **Data);
 static int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_Hader, uint8_t **Data);
 static int f_i_RelayServer_Job_Process_Finish(struct data_header_info_t *Now_Hader, uint8_t *Data, int Client_is);
+static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms);
 
 #define DEFALUT_HTTP_INFO_SIZE 512
 #define DEFALUT_HTTP_METHOD "POST"

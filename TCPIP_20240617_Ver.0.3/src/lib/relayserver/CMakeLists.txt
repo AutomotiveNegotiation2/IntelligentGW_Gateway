@@ -7,6 +7,7 @@ add_library(${TARGET_LIB} SHARED
 target_compile_options(${TARGET_LIB} PRIVATE -Wall)
 target_include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT}/src/lib/relayserver/src/)
 target_include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT}/src/lib/memory_allocation/src/)
+target_include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT}/src/lib/parson/src/)
 target_include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT}/src/lib/include/)
 
 target_link_libraries(${TARGET_LIB} PRIVATE pthread curl memory_allocation)
