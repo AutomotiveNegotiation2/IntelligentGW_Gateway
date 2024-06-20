@@ -1362,62 +1362,72 @@ extern void *Th_RelayServer_NUVO_Client_Task(void *d)
     printf("[DRIVING HISTORY] UDP Socket Infomation ...... NUVO IP Address:Port - %s:%d\n", inet_ntoa(nubo_info->serv_adr.sin_addr), atoi(DEFAULT_NUVO_PORT));
 
     time_t now = time(NULL);
-    for(int i = 0; i < 4; i++)
+    for(int i = 0; i < 1; i++)
     {
         printf("[DRIVING HISTORY] Waiting ECU Indication ...... %ld[s](Working Time)\n", time(NULL) - now);
         sleep(1);
     }
 
     printf("[DRIVING HISTORY] Received ECU Start Indication ...... %ld[s]\n", time(NULL) - now);
-    printf("[DRIVING HISTORY] Press Any Key to continue ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");   
+    printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to continue ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");   
     nubo_info->state = GW_SLEEP_CONNECTIONING_NUVO;
     char Ack_Data[11] = {0,};
     nubo_info->life_time = -1;
     uint32_t Start_Save_Driving_History = 0;
     char *file_data = NULL;
     size_t file_data_len = 0;
-#if 1
+
+    time_t timer = time(NULL);
+    struct tm *t = localtime(&timer);
+    char file_name[19];
+    sprintf(file_name, "%04d%02d%02d_%02d%02d%02d", 1900 + t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+
+#if 0
     CURLcode curl_res;
-    size_t buf_len = 0;
-    char http_recv_buf[1024] = {0,};
-    char *http_send_buf= malloc(sizeof(char) * (file_data_len + 1024));
-    memset(http_send_buf, 0x00, (file_data_len + 1024));
+    
     curl_socket_t sockfd;     
-    char *url = "https://self-api.wtest.biz/v1/system/firmwareUpload.php";
-
     CURL *curl = curl_easy_init();
+    curl_res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
+    
+    curl_easy_setopt(curl, CURLOPT_URL, url_nuvo);
 
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 1L);
-    res = curl_easy_perform(curl);
-    if(res != CURLE_OK) {
-        printf("Error: %s\n", curl_easy_strerror(res));
-        return 1;
-    }
-        
-    JSON_Value *rootValue = json_value_init_object();
-    JSON_Object *rootObject = json_value_get_object(rootValue);  
-    json_object_set_string_with_len(rootObject, "file", "file_data_sample", 16);
-    json_object_set_string_with_len(rootObject, "title", "12345", 5);
-    //json_serialize_to_file_pretty(rootValue, "example.json");
-    json_value_free(rootValue);
+    /*Request Form=Data Body*/
+    char *http_data_boundary = (char*)malloc(sizeof(char) * (6 + 8));
+    srand(time(NULL));//Random 값의 Seed 값 변경
+    sprintf(http_data_boundary, "------%08X", ((rand() % 0xFFFFFFFF) + 1));
+    char *http_body = malloc(1);
+    char http_body_tmp[256] = {0,}; 
+    uint32_t http_body_len_tmp = 0;
+    uint32_t http_body_ptr = 0;
+    
+    http_body_len_tmp = strlen(http_data_boundary) + 2;
+    realloc(http_body, http_body_ptr + http_body_len_tmp);
+    memcpy(http_body + http_body_ptr, http_data_boundary, http_body_len_tmp);
+    http_body_ptr += http_body_len_tmp;
+    memcpy(http_body + http_body_ptr, "\r\n", 2);http_body_ptr += 2;
+    
+    http_body_len_tmp = 0;
+    memset(http_body_tmp, 0x00, 256);
+    sprintf(http_body_tmp, "%s%s", "Content-Disposition", ": ");
+    sprintf(http_body_tmp, "%s%s%s", http_body_tmp, "form-data", "; ");
+    sprintf(http_body_tmp, "%s%s%s", http_body_tmp, "name", "=");
+        sprintf(http_body_tmp, "%s\"%s\"%s", http_body_tmp, "file", "; ");
+    sprintf(http_body_tmp, "%s%s%s", http_body_tmp, "filename", "=");
+        sprintf(http_body_tmp, "%s\"%s\"%s", http_body_tmp, file_name,);
+    sprintf(http_body_tmp, "%s%s", http_body_tmp, "\r\n");
+    http_body_len_tmp = strlen(http_body_tmp);
+    realloc(http_body, http_body_ptr + http_body_len_tmp);
+    memcpy(http_body + http_body_ptr, http_data_boundary, http_body_len_tmp);
+    http_body_ptr += http_body_len_tmp;
 
-    FILE *length_fp = fopen("example.json", "r");
-    fseek(length_fp, 0, SEEK_END);
-    size_t http_body_len = ftell(length_fp); 
-    char *http_body = (char*)malloc(sizeof(char) * http_body_len);
-    fseek(length_fp, 0, SEEK_SET);
-    uint32_t ptr_now = 0;
-    while(feof(length_fp) == 0)
-    {       
-        memset(http_body + ptr_now, fgetc(length_fp) , 1);
-        ptr_now++;
-    }
+
+    /*Request Header*/
+    free(http_data_boundary);
     char *request = malloc(sizeof(char) * 1024);
-    sprintf(request, "%s %s %s\r\n", "POST", url, "HTTP/1.1");
+    sprintf(request, "%s %s %s\r\n", "POST", url_nuvo, "HTTP/1.0");
     sprintf(request, "%s%s: %s\r\n", request , "Host", url);
     sprintf(request, "%s%s: %s\r\n", request , "Accept", "*/*");
-    sprintf(request, "%s%s: %s\r\n", request , "Content-Type", "multipart/form-data; boundary=--00--00--");
+    sprintf(request, "%s%s: %s/%s%s%s\r\n", request , "Content-Type", "multipart", "form-data;", "boundary=", http_data_boundary);
     sprintf(request, "%s%s: %d\r\n", request , "Content-Length", http_body_len);
     sprintf(request, "%s\r\n", request);
     size_t request_len = strlen(request);
@@ -1485,7 +1495,10 @@ extern void *Th_RelayServer_NUVO_Client_Task(void *d)
         /* always cleanup */
         curl_easy_cleanup(curl);
         free(http_body_len);
+
 #endif
+
+
     for(;;)
     {     
         ret = read(TimerFd, &res, sizeof(uint64_t));
@@ -1583,7 +1596,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         int DNM = 1234;
                         memcpy(send_buf + 6 + 4, &DNM, 4);
                         memcpy(send_buf + 6 + 4 + 4, &ETX, 1);
-                        printf("\n");printf("[DRIVING HISTORY] Press Any Key to [Send Request Start Save Driving History] ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Request Start Save Driving History] ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         printf("[DRIVING HISTORY] [Send Request Start Save Driving History] 'Request Start Save Driving History To NUVO' ...... %ld[s]\n", time(NULL) - now);
                         ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
                         printf("[DRIVING HISTORY] [Send Request Start Save Driving History] Send Success ...... %ld[s]\n", time(NULL) - now);
@@ -1706,7 +1719,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         nubo_info->ACK[0] = "A";
                         nubo_info->ACK[1] = "C";
                         nubo_info->ACK[2] = "K";
-                        nubo_info->ACK[3] = 0xF4;
+                        nubo_info->ACK[3] = 0xF6;
                         memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                         int Data_Length = 2781319;
                         memcpy(send_buf + 6 + 4, &Data_Length, 4);
@@ -1726,7 +1739,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                     }
                     case GW_RECEIVE_DRIVING_HISTORY_DATA_FROM_NOVO:
                     {
-                        printf("\n");printf("[DRIVING HISTORY] Press Any Key to Recvive Driving History Data]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to Recvive Driving History Data]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         struct sockaddr_in from_adr;
                         socklen_t from_adr_sz;
                         char recv_buf[1 + 7] = {0,};
@@ -1815,7 +1828,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         nubo_info->ACK[3] = 0xF1;
                         memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                         memcpy(send_buf + 6 + 4, &ETX, 1);
-                        printf("\n");printf("[DRIVING HISTORY] Press Any Key to [Send Request Connecting]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Request Connecting]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         printf("[DRIVING HISTORY] [Send Request Connecting] 'Connecting To NUVO' ...... %ld[s]\n", time(NULL) - now);
                         ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
                         printf("[DRIVING HISTORY] [Send Request Connecting] Send Success ...... %ld[s]\n", time(NULL) - now);
@@ -1845,20 +1858,86 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
     }
 
 
+
 GW_JOB_BY_NUBO_DONE:
-#if 0
+
     printf("[DRIVING HISTORY] [Combine Start Driving History Data] ...... %ld[s]\n", time(NULL) - now);
     sleep(3);
     printf("[DRIVING HISTORY] [Combine Done Driving History Data] ...... %ld[s]\n", time(NULL) - now);
 
-    time_t timer = time(NULL);
-    struct tm *t = localtime(&timer);
-    char file_name[19];
-    sprintf(file_name, "%04d%02d%02d_%02d%02d%02d.zip", t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+
     printf("[DRIVING HISTORY] [Combine Done] File Name ...... %s\n", file_name);
     printf("[DRIVING HISTORY] [Combine Done] File Length ...... %ld[byte]\n", file_data_len);
-    printf("\n");printf("[DRIVING HISTORY] Press Any Key to [Send DRIVING HISTORY DATA To Server]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+    printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send DRIVING HISTORY DATA To Server] ...... File_Name:" "\033[0;31m" "%s" "\033[0;0m" "\n", file_name);while(getchar() != '\n');printf("\x1B[1A\r");
+    sprintf(cmd, "curl -F file=@example.httpbody -F title=%s %s > /dev/null", file_name, url_nuvo); //nubo_sample/2024610_044658_000.zip
+    system(cmd);
+    sleep(2);
+
     
+    char *url_nuvo = "https://itp-self.wtest.biz//v1/system/firmwareUpload.php";
+    char cmd[256] = {0,};
+
+#if 0
+    CURL *curl;
+    CURLM *multi_handle;
+    int still_running = 0;
+    struct curl_httppost *formpost = NULL;
+    struct curl_httppost *lastptr = NULL;
+    struct curl_slist *headerlist = NULL;
+    static const char buf[] = "Expect:";
+
+    /* Fill in the file upload field. This makes libcurl load data from
+        the given file name when curl_easy_perform() is called. */
+    curl_formadd(&formpost,
+                &lastptr,
+                CURLFORM_COPYNAME, "file",
+                CURLFORM_FILE, "example.httpbody",
+                CURLFORM_END);
+
+    /* Fill in the filename field */
+    curl_formadd(&formpost,
+                &lastptr,
+                CURLFORM_COPYNAME, "title",
+                CURLFORM_COPYCONTENTS, "1111",
+                CURLFORM_END);
+
+    curl = curl_easy_init();
+    multi_handle = curl_multi_init();
+
+    /* initialize custom header list (stating that Expect: 100-continue is not
+        wanted */
+    headerlist = curl_slist_append(headerlist, buf);
+    if(curl && multi_handle) 
+    {
+        /* what URL that receives this POST */
+        curl_easy_setopt(curl, CURLOPT_URL, url_nuvo);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+        curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+        curl_multi_add_handle(multi_handle, curl);
+        do {
+            CURLMcode mc = curl_multi_perform(multi_handle, &still_running);
+
+            if(still_running)
+            /* wait for activity, timeout or "nothing" */
+            mc = curl_multi_poll(multi_handle, NULL, 0, 1000, NULL);
+
+            if(mc)
+            break;
+
+        } while(still_running);
+
+        curl_multi_cleanup(multi_handle);
+        /* always cleanup */
+        curl_easy_cleanup(curl);
+        /* then cleanup the formpost chain */
+        curl_formfree(formpost);
+        /* free slist */
+        curl_slist_free_all(headerlist);
+    }
+#endif
+#if 0
+
     CURLcode curl_res;
     size_t buf_len = 0;
     char http_recv_buf[1024] = {0,};
@@ -1963,10 +2042,9 @@ GW_JOB_BY_NUBO_DONE:
         /* always cleanup */
         curl_easy_cleanup(curl);
         free(http_body_len);
-        
+
 #endif
 
-  
     *nubo_info->task_info_state = 2;
     close(nubo_info->sock);
     if(file_data)free(file_data);
