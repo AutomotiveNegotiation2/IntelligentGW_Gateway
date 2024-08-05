@@ -1410,11 +1410,45 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                     ret = recvfrom(nubo_info->sock , recv_buf, 128, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
                     if(ret > 0)
                     {
+                        printf("[DRIVING HISTORY] [Recvive From NUVO] Received Data Length:%d ...... %ld[s]\n", ret, time(NULL) - now);
+                        printf("[DRIVING HISTORY] [Recvive From NUVO] Received Data Hex Stream : ");
                         for(int k = 0; k < ret; k++)
                         {            
-                            printf("%02X ", recv_buf[k]);
+                            printf("%02X", recv_buf[k]);
                         }
                     }
+                    printf("\n");
+                    switch(int(recv_buf[3]))
+                    {
+                        default:break;
+                        case NUVO_SIGNAL_STATE_RES_CONNECT:
+                        {
+                            printf("[DRIVING HISTORY] [Recvive Response Connecting] Response From NUVO ...... %ld[s]\n", time(NULL) - now);
+                            printf("[DRIVING HISTORY] [Recvive Response Connecting] Receive Success ...... %ld[s]\n", time(NULL) - now);
+                            nubo_info->state = GW_REQUEST_SAVE_DRIVING_HISTORY_TO_NUVO;
+                            break;
+                        }
+                        case NUVO_SIGNAL_STATE_RES_SAVEDATA:
+                        {
+                            printf("[DRIVING HISTORY] [Recvive Response Save Driving History] Response From NUVO  ...... %ld[s]\n", time(NULL) - now);
+                            printf("[DRIVING HISTORY] [Recvive Response Save Driving History] Receive Success ...... %ld[s]\n", time(NULL) - now);
+                            nubo_info->state = GW_WAIT_DONE_SAVE_DRIVING_HISTORY_FROM_ECU;
+                            break;
+                        }
+                        case NUVO_SIGNAL_STATE_DONE_SAVEDATA:
+                        {
+                            printf("[DRIVING HISTORY] [Recvive Response Done Save Driving History] 'Response Done Save Driving History From NUVO' ...... %ld[s]\n", time(NULL) - now);
+                            printf("[DRIVING HISTORY] [Recvive Response Done Save Driving History] Receive Success ...... %ld[s]\n", time(NULL) - now);
+                            nubo_info->state = GW_WAIT_DRIVING_HISTORY_INFO_FROM_NOVO;
+                            break;
+                        }
+                        case NUVO_SIGNAL_STATE_DOWNOAD_DONE:
+                        {
+                            nubo_info->state = GW_REQUEST_SAVE_DRIVING_HISTORY_TO_NUVO;
+                            break;
+                        }
+                    }
+                    
                 }
                 switch(nubo_info->state)
                 {
@@ -1424,11 +1458,11 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                     }
                     case GW_WATING_REPLY_CONNECTION_FROM_NUVO:
                     {
-                        if(1)
+                        if(0)
                         {
                             if(nubo_info->life_time > 20)
                             {
-                                printf("[DRIVING HISTORY] [Recvive Response Connecting] Response From NUVO  ...... %ld[s]\n", time(NULL) - now);
+                                printf("[DRIVING HISTORY] [Recvive Response Connecting] Response From NUVO ...... %ld[s]\n", time(NULL) - now);
                                 printf("[DRIVING HISTORY] [Recvive Response Connecting] Receive Success ...... %ld[s]\n", time(NULL) - now);
                                 printf("[DRIVING HISTORY] [Recvive Response Connecting] Receive Data(Hex) ...... ");
                                 char hdr[6] = {0,};
@@ -1486,7 +1520,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         int DNM = 1234;
                         memcpy(send_buf + 6 + 4, &DNM, 4);
                         memcpy(send_buf + 6 + 4 + 4, &ETX, 1);
-                        //printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Request Start Save Driving History] ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Request Start Save Driving History] ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         printf("[DRIVING HISTORY] [Send Request Start Save Driving History] 'Request Start Save Driving History To NUVO' ...... %ld[s]\n", time(NULL) - now);
                         ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
                         printf("[DRIVING HISTORY] [Send Request Start Save Driving History] Send Success ...... %ld[s]\n", time(NULL) - now);
@@ -1509,7 +1543,8 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                     }
                     case GW_WATING_REPLY_SAVE_DRIVING_HISTORY_FROM_NUVO:
                     {
-                        
+                        if(0)
+                        {
                             printf("[DRIVING HISTORY] [Recvive Response Save Driving History] Response From NUVO  ...... %ld[s]\n", time(NULL) - now);
                             printf("[DRIVING HISTORY] [Recvive Response Save Driving History] Receive Success ...... %ld[s]\n", time(NULL) - now);
                             printf("[DRIVING HISTORY] [Recvive Response Save Driving History] Receive Data(Hex) ...... ");
@@ -1542,11 +1577,14 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                             }
                             printf("\n"); 
                             nubo_info->state = GW_WAIT_DONE_SAVE_DRIVING_HISTORY_FROM_ECU;
+                        }else{
+                            printf("[DRIVING HISTORY] [Recvive Response Save Driving History] Wating Response ...... %ld[s]\n", time(NULL) - now);
+                        }
                         
                     }
                     case GW_WAIT_DONE_SAVE_DRIVING_HISTORY_FROM_ECU:
                     {
-                        if((time(NULL) - now) - Start_Save_Driving_History > 5)
+                        if(0)
                         {
                             printf("[DRIVING HISTORY] Received ECU Done Indication ...... %ld[s]\n", time(NULL) - now);
                             char hdr[6] = {0,};
@@ -1566,11 +1604,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                             int DNM = 9101112;
                             memcpy(send_buf + 6 + 4, &DNM, 4);
                             memcpy(send_buf + 6 + 4 + 4, &ETX, 1);
-                            printf("[DRIVING HISTORY] [Send Request Done Save Driving History] 'Request Done Save Driving History To NUVO' ...... %ld[s]\n", time(NULL) - now);
-                            ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
-                            printf("[DRIVING HISTORY] [Send Request Done Save Driving History] Send Success ...... %ld[s]\n", time(NULL) - now);
-                            printf("[DRIVING HISTORY] [Send Request Done Save Driving History] Send Data(Hex) ...... ");
-                            Start_Save_Driving_History =  time(NULL) - now;
+
                             for(int k = 0; k < 15; k++)
                             {
                                 if(k == 9)
@@ -1585,18 +1619,12 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                             free(send_buf); 
                             nubo_info->state = GW_WAIT_DRIVING_HISTORY_INFO_FROM_NOVO;
                         }else{
-                            if(timer_100ms_tick % 10 == 0)
-                            {
-                                printf("[DRIVING HISTORY] Wating ECU Done Indication ...... %ld[s]\n", time(NULL) - now);
-                            }
+                            printf("[DRIVING HISTORY] [Recvive Response Done Save Driving History] Wating Response ...... %ld[s]\n", time(NULL) - now);
                         }     
                         break;
                     }
                     case GW_WAIT_DRIVING_HISTORY_INFO_FROM_NOVO:
                     {
-                        printf("[DRIVING HISTORY] [Waiting Driving History Data Info] Response From NUVO  ...... %ld[s]\n", time(NULL) - now);
-                        printf("[DRIVING HISTORY] [Waiting Driving History Data Info] Receive Success ...... %ld[s]\n", time(NULL) - now);
-                        printf("[DRIVING HISTORY] [Waiting Driving History Data Info] Receive Data(Hex) ...... ");
                         char hdr[6] = {0,};
                         hdr[0] = 0x43;
                         hdr[1] = 0x08;
@@ -1614,6 +1642,12 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         int Data_Length = 2781319;
                         memcpy(send_buf + 6 + 4, &Data_Length, 4);
                         memcpy(send_buf + 6 + 4 + 4, &ETX, 1);
+                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Info Start Upload Driving History Data] ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+                        printf("[DRIVING HISTORY] [Send Prepare Data Download State On] 'Send Prepare Data Download Stat On to NUVO' ...... %ld[s]\n", time(NULL) - now);
+                        ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
+                        printf("[DRIVING HISTORY] [Send Prepare Data Download State On] Send Success ...... %ld[s]\n", time(NULL) - now);
+                        printf("[DRIVING HISTORY] [Send Prepare Data Download State On] Send Data(Hex) ...... ");
+                        Start_Save_Driving_History =  time(NULL) - now;
                         for(int k = 0; k < 15; k++)
                         {
                             if(k == 9)
@@ -1632,14 +1666,16 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         //printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to Recvive Driving History Data]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         struct sockaddr_in from_adr;
                         socklen_t from_adr_sz;
-                        char recv_buf[1 + 7] = {0,};
+                        char *recv_buf = malloc(1);
                         int recv_len = 0;
-                        while(0)
+                        int total_recv_len = 0;
+                        while(1)
                         {
-                             recv_len = recvfrom(nubo_info->sock , recv_buf + recv_len, 128, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
-                             if(recv_len == 0)
-                             {
-                                break;
+                            recv_len = recvfrom(nubo_info->sock , recv_buf + recv_len, 128, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
+                            if(recv_len > 0)
+                            {
+                                total_recv_len += recv_len;
+                                realloc(recv_buf, total_recv_len);
                             }
                         }
 #if 1
