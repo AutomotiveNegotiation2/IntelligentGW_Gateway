@@ -228,7 +228,7 @@ enum NUVO_signal_state_e
     NUVO_SIGNAL_STATE_DOWNOAD_DONE
 };
 
-#define DEFAULT_NUVO_ADDRESS "192.168.137.103"
+#define DEFAULT_NUVO_ADDRESS "192.168.137.1"
 #define DEFAULT_NUVO_PORT "50000"
 
 enum NUVO_connection_state{

@@ -1369,7 +1369,7 @@ extern void *Th_RelayServer_NUVO_Client_Task(void *d)
     }
 
     printf("[DRIVING HISTORY] Received ECU Start Indication ...... %ld[s]\n", time(NULL) - now);
-    printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to continue ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");   
+    //printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to continue ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");   
     nubo_info->state = GW_SLEEP_CONNECTIONING_NUVO;
     char Ack_Data[11] = {0,};
     nubo_info->life_time = -1;
@@ -1381,123 +1381,6 @@ extern void *Th_RelayServer_NUVO_Client_Task(void *d)
     struct tm *t = localtime(&timer);
     char file_name[19];
     sprintf(file_name, "%04d%02d%02d_%02d%02d%02d", 1900 + t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-
-#if 0
-    CURLcode curl_res;
-    
-    curl_socket_t sockfd;     
-    CURL *curl = curl_easy_init();
-    curl_res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
-    
-    curl_easy_setopt(curl, CURLOPT_URL, url_nuvo);
-
-    /*Request Form=Data Body*/
-    char *http_data_boundary = (char*)malloc(sizeof(char) * (6 + 8));
-    srand(time(NULL));//Random 값의 Seed 값 변경
-    sprintf(http_data_boundary, "------%08X", ((rand() % 0xFFFFFFFF) + 1));
-    char *http_body = malloc(1);
-    char http_body_tmp[256] = {0,}; 
-    uint32_t http_body_len_tmp = 0;
-    uint32_t http_body_ptr = 0;
-    
-    http_body_len_tmp = strlen(http_data_boundary) + 2;
-    realloc(http_body, http_body_ptr + http_body_len_tmp);
-    memcpy(http_body + http_body_ptr, http_data_boundary, http_body_len_tmp);
-    http_body_ptr += http_body_len_tmp;
-    memcpy(http_body + http_body_ptr, "\r\n", 2);http_body_ptr += 2;
-    
-    http_body_len_tmp = 0;
-    memset(http_body_tmp, 0x00, 256);
-    sprintf(http_body_tmp, "%s%s", "Content-Disposition", ": ");
-    sprintf(http_body_tmp, "%s%s%s", http_body_tmp, "form-data", "; ");
-    sprintf(http_body_tmp, "%s%s%s", http_body_tmp, "name", "=");
-        sprintf(http_body_tmp, "%s\"%s\"%s", http_body_tmp, "file", "; ");
-    sprintf(http_body_tmp, "%s%s%s", http_body_tmp, "filename", "=");
-        sprintf(http_body_tmp, "%s\"%s\"%s", http_body_tmp, file_name,);
-    sprintf(http_body_tmp, "%s%s", http_body_tmp, "\r\n");
-    http_body_len_tmp = strlen(http_body_tmp);
-    realloc(http_body, http_body_ptr + http_body_len_tmp);
-    memcpy(http_body + http_body_ptr, http_data_boundary, http_body_len_tmp);
-    http_body_ptr += http_body_len_tmp;
-
-
-    /*Request Header*/
-    free(http_data_boundary);
-    char *request = malloc(sizeof(char) * 1024);
-    sprintf(request, "%s %s %s\r\n", "POST", url_nuvo, "HTTP/1.0");
-    sprintf(request, "%s%s: %s\r\n", request , "Host", url);
-    sprintf(request, "%s%s: %s\r\n", request , "Accept", "*/*");
-    sprintf(request, "%s%s: %s/%s%s%s\r\n", request , "Content-Type", "multipart", "form-data;", "boundary=", http_data_boundary);
-    sprintf(request, "%s%s: %d\r\n", request , "Content-Length", http_body_len);
-    sprintf(request, "%s\r\n", request);
-    size_t request_len = strlen(request);
-    memcpy(request + request_len, http_body, http_body_len);
-    request_len += http_body_len;
-
-    for(int i = 0; i < request_len; i++)
-    {
-        printf("%c", request[i]);
-    }
-    printf("\n");
-    size_t nsent_total = 0;
-    do 
-    {
-        size_t nsent;
-        do {
-            nsent = 0;
-            curl_res = curl_easy_send(curl, request + nsent_total, request_len - nsent_total, &nsent);
-            nsent_total += nsent;
-            if(curl_res == CURLE_AGAIN && !f_i_RelayServer_HTTP_WaitOnSocket(sockfd, 0, HTTP_SOCKET_TIMEOUT)) {
-                printf("Error: timeout.\n");
-                return 1;
-            }
-        } while(curl_res == CURLE_AGAIN);
-        if(curl_res != CURLE_OK) 
-        {
-            printf("Error: %s\n", curl_easy_strerror(curl_res));
-            return 1;
-        }
-    } while(nsent_total < request_len);
-
-        printf("Reading response.\n");
-        char buf[2048];
-        for(;;) 
-        {
-            /* Warning: This example program may loop indefinitely (see above). */
-            size_t nread;
-            do {
-                nread = 0;
-                res = curl_easy_recv(curl, buf, sizeof(buf), &nread);
-
-                if(res == CURLE_AGAIN && !wait_on_socket(sockfd, 1, 60000L)) {
-                    printf("Error: timeout.\n");
-                    return 1;
-                }
-            } while(res == CURLE_AGAIN);
-
-            if(res != CURLE_OK) {
-                printf("Error: %s\n", curl_easy_strerror(res));
-                break;
-            }
-
-            if(nread == 0) {
-                /* end of the response */
-                break;
-            }
-            for(int i = 0; i < 2048; i++)
-            {
-                printf("%c", buf[i]);
-            }
-            printf("\n");
-            
-        }
-       
-        /* always cleanup */
-        curl_easy_cleanup(curl);
-        free(http_body_len);
-
-#endif
-
 
     for(;;)
     {     
@@ -1596,7 +1479,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         int DNM = 1234;
                         memcpy(send_buf + 6 + 4, &DNM, 4);
                         memcpy(send_buf + 6 + 4 + 4, &ETX, 1);
-                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Request Start Save Driving History] ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+                        //printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Request Start Save Driving History] ...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         printf("[DRIVING HISTORY] [Send Request Start Save Driving History] 'Request Start Save Driving History To NUVO' ...... %ld[s]\n", time(NULL) - now);
                         ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
                         printf("[DRIVING HISTORY] [Send Request Start Save Driving History] Send Success ...... %ld[s]\n", time(NULL) - now);
@@ -1739,7 +1622,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                     }
                     case GW_RECEIVE_DRIVING_HISTORY_DATA_FROM_NOVO:
                     {
-                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to Recvive Driving History Data]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
+                        //printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to Recvive Driving History Data]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         struct sockaddr_in from_adr;
                         socklen_t from_adr_sz;
                         char recv_buf[1 + 7] = {0,};
@@ -1858,8 +1741,9 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
     }
 
 
-
 GW_JOB_BY_NUBO_DONE:
+
+
 
     printf("[DRIVING HISTORY] [Combine Start Driving History Data] ...... %ld[s]\n", time(NULL) - now);
     sleep(3);
@@ -1869,13 +1753,16 @@ GW_JOB_BY_NUBO_DONE:
     printf("[DRIVING HISTORY] [Combine Done] File Name ...... %s\n", file_name);
     printf("[DRIVING HISTORY] [Combine Done] File Length ...... %ld[byte]\n", file_data_len);
     printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send DRIVING HISTORY DATA To Server] ...... File_Name:" "\033[0;31m" "%s" "\033[0;0m" "\n", file_name);while(getchar() != '\n');printf("\x1B[1A\r");
+    char cmd[256] = {0,};
+    char *url_nuvo = "https://itp-self.wtest.biz//v1/system/firmwareUpload.php";
+
     sprintf(cmd, "curl -F file=@example.httpbody -F title=%s %s > /dev/null", file_name, url_nuvo); //nubo_sample/2024610_044658_000.zip
     system(cmd);
+    memset(cmd, 0x00, 256);
     sleep(2);
-
     
-    char *url_nuvo = "https://itp-self.wtest.biz//v1/system/firmwareUpload.php";
-    char cmd[256] = {0,};
+    
+
 
 #if 0
     CURL *curl;
