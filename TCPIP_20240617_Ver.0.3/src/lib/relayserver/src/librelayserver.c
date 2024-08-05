@@ -1339,7 +1339,7 @@ extern void *Th_RelayServer_NUVO_Client_Task(void *d)
     srand(time(NULL));//Random 값의 Seed 값 변경
     uint32_t timer_op_1s = ((rand() % 9) + 0);
     nubo_info->task_info_state = malloc(sizeof(int));
-    *nubo_info->task_info_state = 2;
+    *nubo_info->task_info_state = 1;
 
     nubo_info->sock = socket(PF_INET, SOCK_DGRAM, 0);
     
@@ -1408,6 +1408,13 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                     socklen_t from_adr_sz;
                     char recv_buf[128] = {0,};
                     ret = recvfrom(nubo_info->sock , recv_buf, 128, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
+                    if(ret > 0)
+                    {
+                        for(int k = 0; k < ret; k++)
+                        {            
+                            printf("%02X ", recv_buf[k]);
+                        }
+                    }
                 }
                 switch(nubo_info->state)
                 {
@@ -1436,7 +1443,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                                 nubo_info->ACK[0] = "A";
                                 nubo_info->ACK[1] = "C";
                                 nubo_info->ACK[2] = "K";
-                                nubo_info->ACK[3] = 0xF2;
+                                nubo_info->ACK[3] = NUVO_SIGNAL_STATE_RES_CONNECT;
                                 memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                                 memcpy(send_buf + 6 + 4, &ETX, 1);
                                 for(int k = 0; k < 11; k++)
@@ -1474,7 +1481,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         nubo_info->ACK[0] = "A";
                         nubo_info->ACK[1] = "C";
                         nubo_info->ACK[2] = "K";
-                        nubo_info->ACK[3] = 0xF3;
+                        nubo_info->ACK[3] = NUVO_SIGNAL_STATE_REQ_SAVEDATA;
                         memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                         int DNM = 1234;
                         memcpy(send_buf + 6 + 4, &DNM, 4);
@@ -1518,7 +1525,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                             nubo_info->ACK[0] = "A";
                             nubo_info->ACK[1] = "C";
                             nubo_info->ACK[2] = "K";
-                            nubo_info->ACK[3] = 0xF4;
+                            nubo_info->ACK[3] = NUVO_SIGNAL_STATE_RES_SAVEDATA;
                             memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                             int DNM = 5678;
                             memcpy(send_buf + 6 + 4, &DNM, 4);
@@ -1554,7 +1561,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                             nubo_info->ACK[0] = "A";
                             nubo_info->ACK[1] = "C";
                             nubo_info->ACK[2] = "K";
-                            nubo_info->ACK[3] = 0xF5;
+                            nubo_info->ACK[3] = NUVO_SIGNAL_STATE_DONE_SAVEDATA;
                             memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                             int DNM = 9101112;
                             memcpy(send_buf + 6 + 4, &DNM, 4);
@@ -1602,7 +1609,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         nubo_info->ACK[0] = "A";
                         nubo_info->ACK[1] = "C";
                         nubo_info->ACK[2] = "K";
-                        nubo_info->ACK[3] = 0xF6;
+                        nubo_info->ACK[3] = NUVO_SIGNAL_STATE_DOWNLOAD_PREPARE;
                         memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                         int Data_Length = 2781319;
                         memcpy(send_buf + 6 + 4, &Data_Length, 4);
@@ -1692,6 +1699,12 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         goto No_GW_SLEEP_CONNECTIONING_NUVO;
                         break;
                     }
+                    case GW_TRYING_CONNECTION_NUVO:
+                    case GW_TRYING_CONNECTION_NUVO_REPEAT_1:
+                    case GW_TRYING_CONNECTION_NUVO_REPEAT_2:
+                    case GW_TRYING_CONNECTION_NUVO_REPEAT_3:
+                    case GW_TRYING_CONNECTION_NUVO_REPEAT_4:
+                    case GW_TRYING_CONNECTION_NUVO_REPEAT_5:
                     case GW_SLEEP_CONNECTIONING_NUVO:
                     {
                         srand(time(NULL));//Random 값의 Seed 값 변경
@@ -1708,12 +1721,26 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         nubo_info->ACK[0] = "A";
                         nubo_info->ACK[1] = "C";
                         nubo_info->ACK[2] = "K";
-                        nubo_info->ACK[3] = 0xF1;
+                        nubo_info->ACK[3] = NUVO_SIGNAL_STATE_REQ_CONNECT;
                         memcpy(send_buf + 6, &nubo_info->ACK[0], 4);
                         memcpy(send_buf + 6 + 4, &ETX, 1);
                         printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send Request Connecting]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         printf("[DRIVING HISTORY] [Send Request Connecting] 'Connecting To NUVO' ...... %ld[s]\n", time(NULL) - now);
                         ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
+                        if(ret <= 0)
+                        {
+                            if(nubo_info->state != GW_TRYING_CONNECTION_NUVO)
+                            {
+                                nubo_info->state = GW_TRYING_CONNECTION_NUVO;
+                            }else{
+                                nubo_info->state++;
+                                if(nubo_info->state == GW_TRYING_CONNECTION_NUVO_REPEAT_MAX)
+                                {
+                                    goto CONNECTION_REPEAT_MAX;
+                                }
+                            }
+                            printf("[DRIVING HISTORY] [Send Request Connecting] 'Connecting To NUVO Error - Count:%d' ...... %ld[s]\n", nubo_info->state - GW_TRYING_CONNECTION_NUVO, time(NULL) - now);
+                        }
                         printf("[DRIVING HISTORY] [Send Request Connecting] Send Success ...... %ld[s]\n", time(NULL) - now);
                         printf("[DRIVING HISTORY] [Send Request Connecting] Send Data(Hex) ...... ");
                         for(int k = 0; k < 11; k++)
@@ -1742,8 +1769,6 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
 
 
 GW_JOB_BY_NUBO_DONE:
-
-
 
     printf("[DRIVING HISTORY] [Combine Start Driving History Data] ...... %ld[s]\n", time(NULL) - now);
     sleep(3);
@@ -1931,16 +1956,19 @@ GW_JOB_BY_NUBO_DONE:
         free(http_body_len);
 
 #endif
-
-    *nubo_info->task_info_state = 2;
-    close(nubo_info->sock);
-    if(file_data)free(file_data);
-    
-    if(*nubo_info->task_info_state == 2)
+CONNECTION_REPEAT_MAX:
+    if(nubo_info->state == GW_TRYING_CONNECTION_NUVO_REPEAT_MAX)
     {
+        *nubo_info->task_info_state = -15;
+        close(nubo_info->sock);
+    }else{
+        *nubo_info->task_info_state = 2;
+        if(file_data)free(file_data);
+        close(nubo_info->sock);
         *nubo_info->task_info_state = 0;
         free(nubo_info->task_info_state);
     }
+
 }
 
 static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms)
