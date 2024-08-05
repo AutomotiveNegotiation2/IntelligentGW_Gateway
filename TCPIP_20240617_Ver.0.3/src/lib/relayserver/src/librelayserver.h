@@ -176,7 +176,7 @@ static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms);
 
 #define HTTP_BUFFER_SIZE 10240
 #define HTTP_SOCKET_TIMEOUT 1000L //ms
-
+#define MAX_UDP_RECV_DATA 2048
 
 struct curl_info_t{
     CURL *curl;
