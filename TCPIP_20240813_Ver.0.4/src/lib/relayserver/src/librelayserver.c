@@ -1705,7 +1705,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                                 recv_file_data = realloc(recv_file_data, total_recv_len);
                                 memset(recv_file_data + total_recv_len - recv_len, recv_buf, recv_len);
                             }else{
-                                printf("time:%ld\n", (time(NULL) - recv_start_time));
+                                printf("\ntime:%ld\n", (time(NULL) - recv_start_time));
                                 if(time(NULL) - recv_start_time > 3)
                                 {
                                     if(file_data_len >= total_recv_len)
@@ -1716,39 +1716,19 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                                 }
                             }
                         }
-
-
-#if 0
-DIR *dr = opendir(NOVO_FILE_PATH);
-struct dirent *de;
-char *file_name = NULL;
-while ((de = readdir(dr)) != NULL) 
-{
-    if (de->d_type == DT_REG)
-    {
-        file_name = malloc(sizeof(char) * de->d_reclen);
-        memcpy(file_name, de->d_name, de->d_reclen);
-        break;
-    }else if (de->d_type == DT_DIR)
-    {
-    }else{
-    }
-}
-closedir(dr);
-#endif
                         #define NOVO_FILE_PATH "/home/root/Project_Relayserver/nubo_sample"
-                        ret = access(NOVO_FILE_PATH, F_OK);
-                        char *file_path = malloc(sizeof(char) * strlen(file_name) + sizeof(NOVO_FILE_PATH));
-                        sprintf(file_path, "%s/%s", NOVO_FILE_PATH, file_name);
+                        ret = access(NOVO_FILE_PATH, F_OK);DEBUG_1
+                        char *file_path = malloc(sizeof(char) * strlen(file_name) + sizeof(NOVO_FILE_PATH));DEBUG_1
+                        sprintf(file_path, "%s/%s", NOVO_FILE_PATH, file_name);DEBUG_1
                         
-                        FILE *fp = fopen(file_path, "r");
-                        fseek(fp, 0, SEEK_SET);
+                        FILE *fp = fopen(file_path, "r");DEBUG_1
+                        fseek(fp, 0, SEEK_SET);DEBUG_1
                         for(int k = 0; k < file_data_len; k++)
                         {
                             fputc(recv_file_data[k], fp);
                         }
-                        if(file_path)free(file_path);
-                        if(recv_file_data)free(recv_file_data);
+                        if(file_path)free(file_path);DEBUG_1
+                        if(recv_file_data)free(recv_file_data);DEBUG_1
                         goto GW_JOB_BY_NUBO_DONE;
 
                         break;

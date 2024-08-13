@@ -26,7 +26,7 @@ server_ip = "192.168.137.1"
 server_port = 50000
 server_addr_port = (server_ip, server_port)
 
-buffersize = 10000000
+buffersize = 2048
 udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 udp_server_socket.bind(server_addr_port)
 udp_server_socket.setblocking(False)
@@ -53,7 +53,7 @@ def bytes_trans(int_val, bytes_info, start, end):
 
 def send_large_message(sock, message, addr, chunk_size=1024, timeout=0.5):
     sock.setblocking(False)
-    
+    print("DEBUG")
     total_sent = 0
     while total_sent < len(message):
         ready = select.select([], [sock], [], timeout)
@@ -94,7 +94,6 @@ def sendCDH(directory):
     
     data_head = cliSock.startCode #+ sizess.to_bytes(4, byteorder="little") + encode_proto
     ll = b''
-    print("DEBUG")
     for file in os.listdir(directory):
         f = open(os.path.join(directory + "\\" + file), "rb")
         l = f.read(os.path.getsize(os.path.join(directory + "\\" + file)))
@@ -102,9 +101,7 @@ def sendCDH(directory):
         data_ch = l + check
         ll += data_ch
         f.close()
-        print(ll)
     data_head += ll
-    
     return data_head
 
 def msg_gen(msg_type):
@@ -159,7 +156,7 @@ def msg_gen(msg_type):
         ACK_data[1] = ord("C")
         ACK_data[2] = ord("K")
         ACK_data[3] = 253 # F4
-        DNM_Done = os.path.getsize("C:/Works/Jobs/Secure_OTA/Code_Dev/NUBO_20240813_sample/2024610_044658_000")
+        DNM_Done = os.path.getsize("C:/Works/Jobs/Secure_OTA/Code_Dev/NUBO_20240813_sample/2024610_044658_000/2024610_044658_000.zip")
         DNM_Done_data = bytearray(4)
 #         DNM_Rep = 5678
 #         DNM_Rep_data = bytearray(4)
@@ -182,6 +179,7 @@ def msg_gen(msg_type):
         Down_start_data = bytearray(4)
         Down_start_data = bytes_trans(Down_start, Down_start_data,0,3)
         message = header + bytes_data + tail
+        print("DEBUG", "message size:", len(message))
         send_large_message(udp_server_socket, message, addr)
         #udp_server_socket.sendto(header + bytes_data + tail , addr)
         
@@ -221,7 +219,7 @@ if __name__ == "__main__":
         print("ACK : ", ack )
         if data_send:
             mk_msg = msg_gen("Down_start")
-            udp_server_socket.sendto(mk_msg, addr)
+            #udp_server_socket.sendto(mk_msg, addr)
         else:
             if nuvo_sig == 0xF1:
                 mk_msg = msg_gen("connect_check")
@@ -231,10 +229,10 @@ if __name__ == "__main__":
                 # DNM
                 mk_msg = msg_gen("Rep")
                 udp_server_socket.sendto(mk_msg, addr)
-                data_send = True
+                data_send = False
                 mk_msg = msg_gen("Done")
                 udp_server_socket.sendto(mk_msg, addr)
-                data_send = False
+                data_send = True
             #elif nuvo_sig == 0xFD:
                 mk_msg = msg_gen("Down_start")
                 #udp_server_socket.sendto(mk_msg, addr)
