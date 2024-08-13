@@ -26,7 +26,7 @@ server_ip = "192.168.137.1"
 server_port = 50000
 server_addr_port = (server_ip, server_port)
 
-buffersize = 10000
+buffersize = 10000000
 udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 udp_server_socket.bind(server_addr_port)
 udp_server_socket.setblocking(False)
@@ -53,6 +53,7 @@ def bytes_trans(int_val, bytes_info, start, end):
 
 def send_large_message(sock, message, addr, chunk_size=1024, timeout=0.5):
     sock.setblocking(False)
+    
     total_sent = 0
     while total_sent < len(message):
         ready = select.select([], [sock], [], timeout)
@@ -101,6 +102,7 @@ def sendCDH(directory):
         data_ch = l + check
         ll += data_ch
         f.close()
+        print(ll)
     data_head += ll
     
     return data_head

@@ -1699,10 +1699,10 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                             recv_len = recvfrom(nubo_info->sock , recv_buf, MAX_UDP_RECV_DATA, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
                             if(recv_len > 0)
                             {
-                                printf("recv_buf:%d\n", total_recv_len);
+                                printf("recv_buf:%d/%d\n", total_recv_len, file_data_len);
                                 printf("\033[A");
                                 total_recv_len += recv_len;
-                                //realloc(recv_file_data, total_recv_len);
+                                recv_file_data = realloc(recv_file_data, total_recv_len);
                                 memset(recv_file_data + total_recv_len - recv_len, recv_buf, recv_len);
                             }else{
                                 printf("time:%ld\n", (time(NULL) - recv_start_time));
