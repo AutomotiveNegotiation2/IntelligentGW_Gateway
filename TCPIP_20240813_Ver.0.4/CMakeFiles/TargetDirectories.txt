@@ -1,0 +1,17 @@
+/home/root/Project_Relayserver/CMakeFiles/rebuild_cache.dir
+/home/root/Project_Relayserver/CMakeFiles/edit_cache.dir
+/home/root/Project_Relayserver/src/app/remove/CMakeFiles/rebuild_cache.dir
+/home/root/Project_Relayserver/src/app/remove/CMakeFiles/remove.dir
+/home/root/Project_Relayserver/src/app/remove/CMakeFiles/edit_cache.dir
+/home/root/Project_Relayserver/src/lib/memory_allocation/CMakeFiles/rebuild_cache.dir
+/home/root/Project_Relayserver/src/lib/memory_allocation/CMakeFiles/memory_allocation.dir
+/home/root/Project_Relayserver/src/lib/memory_allocation/CMakeFiles/edit_cache.dir
+/home/root/Project_Relayserver/src/lib/relayserver/CMakeFiles/rebuild_cache.dir
+/home/root/Project_Relayserver/src/lib/relayserver/CMakeFiles/relayserver.dir
+/home/root/Project_Relayserver/src/lib/relayserver/CMakeFiles/edit_cache.dir
+/home/root/Project_Relayserver/src/lib/parson/CMakeFiles/rebuild_cache.dir
+/home/root/Project_Relayserver/src/lib/parson/CMakeFiles/parson.dir
+/home/root/Project_Relayserver/src/lib/parson/CMakeFiles/edit_cache.dir
+/home/root/Project_Relayserver/src/app/relayserver_test/CMakeFiles/rebuild_cache.dir
+/home/root/Project_Relayserver/src/app/relayserver_test/CMakeFiles/relay_test_app.dir
+/home/root/Project_Relayserver/src/app/relayserver_test/CMakeFiles/edit_cache.dir
