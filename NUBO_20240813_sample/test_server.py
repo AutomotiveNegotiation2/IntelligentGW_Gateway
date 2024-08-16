@@ -51,9 +51,9 @@ def bytes_trans(int_val, bytes_info, start, end):
 #         chunk = message[i:i+chunk_size]
 #         sock.sendto(chunk, addr)
 
-def send_large_message(sock, message, addr, chunk_size=1024, timeout=0.5):
+def send_large_message(sock, message, addr, chunk_size=10240, timeout=0.5):
     sock.setblocking(False)
-    print("DEBUG")
+    
     total_sent = 0
     while total_sent < len(message):
         ready = select.select([], [sock], [], timeout)
@@ -65,6 +65,7 @@ def send_large_message(sock, message, addr, chunk_size=1024, timeout=0.5):
                 total_sent += sent
             except BlockingIOError:
                 time.sleep(0.01)  # 잠시 대기
+    print(total_sent)
     sock.setblocking(True)
 
 

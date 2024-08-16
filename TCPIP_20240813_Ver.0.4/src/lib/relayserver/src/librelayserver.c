@@ -1690,7 +1690,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         socklen_t from_adr_sz;
                         char *recv_file_data = malloc(1);
                         int total_recv_len = 0;
-                        time_t recv_start_time = time(NULL);
+                        time_t recv_end_time;;
                         printf("[DRIVING HISTORY] [Recvive Driving History Data] Start Recvive From NUVO ...... %ld[s]\n", time(NULL) - now);
                         while(1)
                         {
@@ -1704,9 +1704,11 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                                 total_recv_len += recv_len;
                                 recv_file_data = realloc(recv_file_data, total_recv_len);
                                 memset(recv_file_data + total_recv_len - recv_len, recv_buf, recv_len);
+                                recv_end_time = time(NULL);
                             }else{
-                                printf("\ntime:%ld\n", (time(NULL) - recv_start_time));
-                                if(time(NULL) - recv_start_time > 3)
+                                printf("\ntime:%ld\n", (time(NULL) - recv_end_time));
+                                printf("\033[A");
+                                if(time(NULL) - recv_end_time > 3)
                                 {
                                     if(file_data_len >= total_recv_len)
                                     {
@@ -1716,19 +1718,26 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                                 }
                             }
                         }
+                        printf("\n");
                         #define NOVO_FILE_PATH "/home/root/Project_Relayserver/nubo_sample"
                         ret = access(NOVO_FILE_PATH, F_OK);DEBUG_1
+                        
                         char *file_path = malloc(sizeof(char) * strlen(file_name) + sizeof(NOVO_FILE_PATH));DEBUG_1
                         sprintf(file_path, "%s/%s", NOVO_FILE_PATH, file_name);DEBUG_1
-                        
-                        FILE *fp = fopen(file_path, "r");DEBUG_1
-                        fseek(fp, 0, SEEK_SET);DEBUG_1
+                        printf("file_path:%s, %d\n", file_path, strlen(file_path));
+                        FILE *fp = fopen(file_path, "w+");DEBUG_1
+                       
                         for(int k = 0; k < file_data_len; k++)
                         {
-                            fputc(recv_file_data[k], fp);
+                             if (fputc(recv_file_data + k, fp) == EOF) {
+                                perror("Error writing to file");
+                                fclose(fp);
+                                return -1;
+                            }
                         }
                         if(file_path)free(file_path);DEBUG_1
                         if(recv_file_data)free(recv_file_data);DEBUG_1
+                        fclose(fp);
                         goto GW_JOB_BY_NUBO_DONE;
 
                         break;
@@ -1831,65 +1840,6 @@ GW_JOB_BY_NUBO_DONE:
     memset(cmd, 0x00, 256);
     sleep(2);
     
-#if 0
-    CURL *curl;
-    CURLM *multi_handle;
-    int still_running = 0;
-    struct curl_httppost *formpost = NULL;
-    struct curl_httppost *lastptr = NULL;
-    struct curl_slist *headerlist = NULL;
-    static const char buf[] = "Expect:";
-
-    /* Fill in the file upload field. This makes libcurl load data from
-        the given file name when curl_easy_perform() is called. */
-    curl_formadd(&formpost,
-                &lastptr,
-                CURLFORM_COPYNAME, "file",
-                CURLFORM_FILE, "example.httpbody",
-                CURLFORM_END);
-
-    /* Fill in the filename field */
-    curl_formadd(&formpost,
-                &lastptr,
-                CURLFORM_COPYNAME, "title",
-                CURLFORM_COPYCONTENTS, "1111",
-                CURLFORM_END);
-
-    curl = curl_easy_init();
-    multi_handle = curl_multi_init();
-
-    /* initialize custom header list (stating that Expect: 100-continue is not
-        wanted */
-    headerlist = curl_slist_append(headerlist, buf);
-    if(curl && multi_handle) 
-    {
-        /* what URL that receives this POST */
-        curl_easy_setopt(curl, CURLOPT_URL, url_nuvo);
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
-        curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
-        curl_multi_add_handle(multi_handle, curl);
-        do {
-            CURLMcode mc = curl_multi_perform(multi_handle, &still_running);
-
-            if(still_running)
-            /* wait for activity, timeout or "nothing" */
-            mc = curl_multi_poll(multi_handle, NULL, 0, 1000, NULL);
-
-            if(mc)
-            break;
-
-        } while(still_running);
-
-        curl_multi_cleanup(multi_handle);
-        /* always cleanup */
-        curl_easy_cleanup(curl);
-        /* then cleanup the formpost chain */
-        curl_formfree(formpost);
-        /* free slist */
-        curl_slist_free_all(headerlist);
-    }
-#endif
 #if 0
 
     CURLcode curl_res;
@@ -1999,17 +1949,18 @@ GW_JOB_BY_NUBO_DONE:
 
 #endif
 CONNECTION_REPEAT_MAX:
+DEBUG_1
     if(nubo_info->state == GW_TRYING_CONNECTION_NUVO_REPEAT_MAX)
     {
         *nubo_info->task_info_state = -15;
         close(nubo_info->sock);
     }else{
         *nubo_info->task_info_state = 2;
-        if(file_name)free(file_name);
         close(nubo_info->sock);
         *nubo_info->task_info_state = 0;
         free(nubo_info->task_info_state);
     }
+    DEBUG_1
 
 }
 
