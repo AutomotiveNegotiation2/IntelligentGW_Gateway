@@ -42,7 +42,7 @@ int main()
     http_info.Request_Line.To = DEFALUT_HTTP_SERVER_PROGRAM_URL;
     F_i_RelayServer_HTTP_Initial(G_HTTP_Request_Info_Fireware, &http_info);
 
-    int port = 8800;
+    int port = 50000;
     struct socket_info_t Server_Info = F_s_RelayServer_TcpIp_Initial_Server(NULL, &port, &ret_err);
     printf("%s, %d\n", __func__, Server_Info.Socket);
     F_i_RelayServer_TcpIp_Task_Run(&Server_Info);

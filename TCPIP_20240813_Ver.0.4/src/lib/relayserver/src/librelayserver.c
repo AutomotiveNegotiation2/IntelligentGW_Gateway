@@ -51,8 +51,7 @@ struct socket_info_t F_s_RelayServer_TcpIp_Initial_Server(char *Device_Name, int
             *err = -1;
             return Socket_Info;
         }
-
-        memset(&Socket_Info.Socket_Addr, 0x00, sizeof(Socket_Info.Socket_Addr));  
+        //memset(&Socket_Info.Socket_Addr, 0x00, sizeof(Socket_Info.Socket_Addr));  
         Socket_Info.Socket_Addr.sin_family = AF_INET;  
         Socket_Info.Socket_Addr.sin_port = htons(Socket_Info.Port);
     }
