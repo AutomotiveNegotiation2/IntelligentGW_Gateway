@@ -53,6 +53,7 @@ int main()
 
     struct timespec tv;
 
+    #if 0 
     struct NUVO_recv_task_info_t nubo_task;
     pthread_t Task_ID_NOBO;
     clear();
@@ -60,6 +61,7 @@ int main()
     printf("[DRIVING HISTORY] START NUVO Job Task.\n");
     pthread_create(&Task_ID_NOBO, NULL, Th_RelayServer_NUVO_Client_Task, (void*)&nubo_task);
     pthread_detach(Task_ID_NOBO);
+    #endif
     while(1)
     {
         clock_gettime(CLOCK_MONOTONIC, &tv); 

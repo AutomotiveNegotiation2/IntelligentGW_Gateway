@@ -1,1 +1,1 @@
-scp -r ./src/lib/* root@192.168.137.102:/home/root/Project_Relayserver/src/lib/
+scp -r ./src/* root@192.168.0.80:/home/root/Project_Relayserver/src/
