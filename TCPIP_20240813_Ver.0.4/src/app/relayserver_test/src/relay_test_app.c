@@ -62,8 +62,21 @@ int main()
     pthread_create(&Task_ID_NOBO, NULL, Th_RelayServer_NUVO_Client_Task, (void*)&nubo_task);
     pthread_detach(Task_ID_NOBO);
     #endif
+
+    
+#define DEFAULT_ECU_ADDRESS "192.168.0.202"
+#define DEFAULT_ECU_PORT "50000"
+    char *send_buf = "Send";
+    struct sockaddr_in send_addr;
+    memset(&send_addr, 0x00, sizeof(send_addr)); 
+    send_addr.sin_family = AF_INET;
+    send_addr.sin_addr.s_addr = inet_addr(DEFAULT_ECU_ADDRESS);
+    send_addr.sin_port = htons(atoi(DEFAULT_ECU_PORT));
     while(1)
     {
+        //ret = sendto(nubo_info->sock , send_buf, 11, 0, (struct sockaddr*)&nubo_info->serv_adr, sizeof(nubo_info->serv_adr));
+        int ret = sendto(Server_Info.Socket, send_buf, 4, 0, (struct sockaddr*)&send_addr, sizeof(send_addr));
+        printf("ret:%d\n", ret);
         clock_gettime(CLOCK_MONOTONIC, &tv); 
         sleep(1);
     }

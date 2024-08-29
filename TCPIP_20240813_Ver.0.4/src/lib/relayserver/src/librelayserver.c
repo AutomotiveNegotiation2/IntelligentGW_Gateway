@@ -22,10 +22,17 @@ struct socket_info_t F_s_RelayServer_TcpIp_Initial_Server(char *Device_Name, int
     }else{
         Socket_Info.Socket_Type = SERVER_SOCKET;
         Socket_Info.Port = *Port;
-    
+         //Socket_Setup
+        Socket_Info.Socket = socket(PF_INET, SOCK_DGRAM, 0);
+        memset(&Socket_Info.Socket_Addr, 0x00, sizeof(Socket_Info.Socket_Addr)); 
+        Socket_Info.Socket_Addr.sin_family = AF_INET;
+        Socket_Info.Socket_Addr.sin_port = htons(Socket_Info.Port);
+
         if(Device_Name)
         {
             //Getting the Ethernet Device IP Address  
+
+            Socket_Info.Device_Name = Device_Name;
             ret = F_i_RelayServer_TcpIp_Get_Address(Socket_Info.Device_Name, Socket_Info.Device_IPv4_Address);
             if(ret < 0)
             {
@@ -33,17 +40,15 @@ struct socket_info_t F_s_RelayServer_TcpIp_Initial_Server(char *Device_Name, int
                 *err = -1;
                 return Socket_Info;
             }
-            Socket_Info.Device_Name = Device_Name;
             Socket_Info.Socket_Addr.sin_addr.s_addr = inet_addr(Socket_Info.Device_IPv4_Address);
+            
         }else 
         {
-            
             Socket_Info.Device_Name = malloc(sizeof(uint8_t) * 10);
             Socket_Info.Device_Name = "INADDR_ANY";
             Socket_Info.Socket_Addr.sin_addr.s_addr = htonl(INADDR_ANY);
         }
-        Socket_Info.Socket = socket(AF_INET, SOCK_STREAM, 0);
-        //Socket_Setup
+
         ret = f_i_RelayServer_TcpIp_Setup_Socket(&Socket_Info.Socket, 10, true);
         if(ret < 0)
         {
@@ -51,9 +56,7 @@ struct socket_info_t F_s_RelayServer_TcpIp_Initial_Server(char *Device_Name, int
             *err = -1;
             return Socket_Info;
         }
-        //memset(&Socket_Info.Socket_Addr, 0x00, sizeof(Socket_Info.Socket_Addr));  
-        Socket_Info.Socket_Addr.sin_family = AF_INET;  
-        Socket_Info.Socket_Addr.sin_port = htons(Socket_Info.Port);
+
     }
 
     return Socket_Info;
@@ -192,7 +195,6 @@ void *Th_RelayServer_Job_Task(void *Data)
                         itval.it_value.tv_sec = tv.tv_sec + 1;
                         timerfd_settime (TimerFd, TFD_TIMER_ABSTIME, &itval, NULL);
                     }
-                    
                     break;
                 break;
             }
