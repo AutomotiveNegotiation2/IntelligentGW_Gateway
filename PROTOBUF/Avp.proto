@@ -1,0 +1,323 @@
+syntax = "proto3";
+package keti;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Google.Protobuf.keti.Avp";
+
+// Version.
+message Version {
+	// Major version.
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, )
+	uint32	major = 1;
+
+	// Minor version.
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, )
+	uint32	minor = 2;
+
+	// Patch version.
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, )
+	uint32	patch = 3;
+}
+
+// Entity.
+message Entity {
+	// First level identifier.
+	string	primary_id = 1;
+
+	// Second level identifier.
+	string	secondary_id = 2;
+
+	// Type.
+	string	type = 3;
+
+	// Software version.
+	Version software_version = 4;
+
+	// Hardware version.
+	Version hardware_version = 5;
+}
+
+// Envelope.
+message Envelope {
+	// Format version.
+	Version	version = 1;
+
+	// Information about the submitting entity which may be a fleet, a vehicle manufacturer or a specific service/software. The primary id might be the company name whereas the secondary id might be a service reason, a bilateral contract identifier or similar.
+	//
+	// @example Values primary_id: "ABC Vehicle Manufacturer", secondary_id: "ConnectedVehicleSensorDataCollectionUnit", type: "HazardWarning".
+	Entity submitter = 2;
+}
+
+message Ids {
+	// Session identifier
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [1, )
+	string	session_id = 1;
+	
+	// Message identifier
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [1, )
+	int32	message_id = 2;
+}
+
+
+
+// 주차장에서 발생하는 차량내부데이터 이상행동 검출 정보
+message AvpVehicleAbnormalData {
+  google.protobuf.Timestamp		time	= 1;
+  AbnormalType					type	= 2; 
+  
+  enum AbnormalType {
+	UNKNOWN_TYPE		= 0;
+    DRIVE_DIAGONAL		= 1;	// 사선주행
+    DRIVE_REVERSE		= 2;	// 주차 통로 역주행
+	PARK_NON_PARK_AREA	= 3;	// 비 주차공간 주차
+	PARK_STEP_ON_LINE	= 4;	// 주차선을 밟고 주차
+	DRIVE_SPEED_LIMIT	= 5;	// 제한 속도 초과주행
+	DRIVE_DOOR_OPEN		= 6;	// 주행 중 문열림	
+	IGNORE_ALARM		= 7;	// 후방 충돌 감지 알람 무시
+	SUA					= 8;	// 급발진, SUA(Sudden Unintended Acceleration)
+	MEANDERING			= 9;	// 사행 주행
+	COMM_ERROR			= 10;	// 자율차 통신 이상
+  }
+}
+
+message AvpVehicleAbnormalDataStream {
+	repeated AvpVehicleAbnormalData data = 1;
+}
+
+
+
+// 주차장 Grid map 내 차량 및 사람 검출 정보
+message AvpGridPos {
+	int32	x	= 1;
+	int32	y	= 2;
+}
+
+message AvpVehiclePos {
+	AvpGridPos	pos1	= 1;
+	AvpGridPos	pos2	= 2;
+}
+
+message AvpVehicle {
+	AvpVehiclePos	pos	= 1;
+	string			id	= 2;		// 번호판, 인식하지 못한 차량은 null
+}
+
+message AvpParkingSpaces {
+	repeated bool parked = 1;
+}
+
+message AvpCCTVMonitoringData {
+	google.protobuf.Timestamp	time		= 1;
+	
+	repeated AvpVehicle			avp_cars	= 2;
+	repeated AvpVehicle			cars		= 3;
+	repeated AvpVehiclePos		persons		= 4;
+	AvpParkingSpaces			spaces		= 5;
+}
+
+// CAN Data
+message AvpVehicleParkingSensor {
+	// Front alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	FR_alarm	= 1;
+	
+	// Front Center S??? alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	FCS_alarm	= 2;
+	
+	// Front Left S??? alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	FLS_alarm	= 3;
+	
+	// Front Right S??? alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	FRS_alarm	= 4;
+
+	// Front indication
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	FI_ind		= 5;
+	
+	// Front O??? Left indication
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	FOL_ind		= 6;
+	
+	// Front O??? Right indication
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	FOR_ind		= 7;
+	
+	// Rear alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	RR_alarm	= 8;
+	
+	// Rear Center S??? alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	RCS_alarm	= 9;
+	
+	// Rear Left S??? alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	RLS_alarm	= 10;
+	
+	// Rear Right S??? alarm
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	RRS_alarm	= 11;
+
+	// Rear indication
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	RI_ind		= 12;
+	
+	// Rear O??? Left indication
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	ROL_ind		= 13;
+	
+	// Rear O??? Right indication
+	//
+	// @unit 1
+	// @resolution 1
+	// @range [0, 3]
+	uint32	ROR_ind		= 14;
+}
+
+message AvpVehicleSteeringSensor {	
+	// Steering Angle Sensor(SAS) angle
+	//
+	// @unit deg
+	// @resolution 0.1
+	// @range [-3276.8, 3276.7]
+	double	sas_angle	= 1;
+	
+	// Steering Angle Sensor(SAS) angle
+	//
+	// @unit ""
+	// @resolution 4.0
+	// @range [0, 1016.0]
+	double	sas_speed	= 2;
+}
+
+message AvpVehicleStabilitySensor {
+	// ESP(Electronic Stability Program) LAT Accel
+	//
+	// @unit "m/s^2"
+	// @resolution 0.01
+	// @range [-10.23, 10.24]
+	double	esp_lat_accel	= 1;
+	
+	// ESP(Electronic Stability Program) LONG Accel
+	//
+	// @unit "m/s^2"
+	// @resolution 0.01
+	// @range [-10.23, 10.24]
+	double	esp_long_accel	= 2;
+	
+	// ESP(Electronic Stability Program) yaw rate
+	//
+	// @unit ""
+	// @resolution 0.01
+	// @range [-40.95, 40.96]
+	double	esp_yaw_rate	= 3;
+}
+
+message AvpVehicleDoorSensor {
+	int32	front	= 1;	// 앞문?
+}
+
+message AvpCANSensorData {
+	google.protobuf.Timestamp		time		= 1;
+	AvpVehicleParkingSensor			parking		= 2;
+	AvpVehicleSteeringSensor		steering	= 3;
+	AvpVehicleStabilitySensor		stability	= 4;
+	AvpVehicleDoorSensor			door		= 5;
+}
+
+message AvpControlMessage {
+	enum Type {
+		UNKNOWN_TYPE	= 0;
+		REQ_RESET		= 1;
+		REQ_CONNECT		= 2;
+		RESP_CONNECT	= 3;
+	}
+	Type type	= 1;
+	
+	enum Code {
+		UNKNOWN_CODE	= 0;
+		SUCCESS			= 1;
+		FAIL			= 2;
+	}
+	Code code	= 2;
+}
+
+message AvpDataMessage {
+	repeated AvpCANSensorData	data	= 1;
+}
+
+// Data messages for transport, i.e. the root message type that is exchanged between Service Cloud, Vehicle Cloud and Vehicle Fleet.
+message AvpMessage {
+	// Envelope.
+	Envelope envelope	= 1;
+
+	// Ids
+	Ids		id			= 2;
+	
+	oneof message {
+		// Control message
+		AvpControlMessage	ctrl	= 3;
+		// Data message.
+		AvpDataMessage	data	= 4;
+	}
+}
+
+	
