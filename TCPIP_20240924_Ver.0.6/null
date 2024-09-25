@@ -1,0 +1,93 @@
+/usr/bin/cmake -S/home/root/Project_Relayserver -B/home/root/Project_Relayserver --check-build-system CMakeFiles/Makefile.cmake 0
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/root/Project_Relayserver
+/usr/bin/cmake -E cmake_progress_start /home/root/Project_Relayserver/CMakeFiles /home/root/Project_Relayserver/CMakeFiles/progress.marks
+make -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/home/root/Project_Relayserver'
+make -f src/app/remove/CMakeFiles/remove.dir/build.make src/app/remove/CMakeFiles/remove.dir/depend
+make[2]: Entering directory '/home/root/Project_Relayserver'
+cd /home/root/Project_Relayserver && /usr/bin/cmake -E cmake_depends "Unix Makefiles" /home/root/Project_Relayserver /home/root/Project_Relayserver/src/app/remove /home/root/Project_Relayserver /home/root/Project_Relayserver/src/app/remove /home/root/Project_Relayserver/src/app/remove/CMakeFiles/remove.dir/DependInfo.cmake --color=
+Scanning dependencies of target remove
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+make -f src/app/remove/CMakeFiles/remove.dir/build.make src/app/remove/CMakeFiles/remove.dir/build
+make[2]: Entering directory '/home/root/Project_Relayserver'
+[ 10%] Building C object src/app/remove/CMakeFiles/remove.dir/remove.c.o
+cd /home/root/Project_Relayserver/src/app/remove && /usr/bin/cc  -I/home/root/Project_Relayserver/output/include   -o CMakeFiles/remove.dir/remove.c.o   -c /home/root/Project_Relayserver/src/app/remove/remove.c
+[ 20%] Linking C executable remove
+cd /home/root/Project_Relayserver/src/app/remove && /usr/bin/cmake -E remove /home/root/Project_Relayserver/output/include/*.h
+cd /home/root/Project_Relayserver/src/app/remove && /usr/bin/cmake -E remove /home/root/Project_Relayserver/src/lib/include/*.h
+cd /home/root/Project_Relayserver/src/app/remove && /usr/bin/cmake -E cmake_link_script CMakeFiles/remove.dir/link.txt --verbose=1
+/usr/bin/cc    CMakeFiles/remove.dir/remove.c.o  -o remove   -L/home/root/Project_Relayserver/ouput/lib 
+cd /home/root/Project_Relayserver/src/app/remove && /usr/bin/cmake -E remove remove
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+[ 20%] Built target remove
+make -f src/lib/memory_allocation/CMakeFiles/memory_allocation.dir/build.make src/lib/memory_allocation/CMakeFiles/memory_allocation.dir/depend
+make[2]: Entering directory '/home/root/Project_Relayserver'
+cd /home/root/Project_Relayserver && /usr/bin/cmake -E cmake_depends "Unix Makefiles" /home/root/Project_Relayserver /home/root/Project_Relayserver/src/lib/memory_allocation /home/root/Project_Relayserver /home/root/Project_Relayserver/src/lib/memory_allocation /home/root/Project_Relayserver/src/lib/memory_allocation/CMakeFiles/memory_allocation.dir/DependInfo.cmake --color=
+Scanning dependencies of target memory_allocation
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+make -f src/lib/memory_allocation/CMakeFiles/memory_allocation.dir/build.make src/lib/memory_allocation/CMakeFiles/memory_allocation.dir/build
+make[2]: Entering directory '/home/root/Project_Relayserver'
+[ 30%] Building C object src/lib/memory_allocation/CMakeFiles/memory_allocation.dir/src/memory_allocation.c.o
+cd /home/root/Project_Relayserver/src/lib/memory_allocation && /usr/bin/cc -Dmemory_allocation_EXPORTS -I/home/root/Project_Relayserver/output/include -I/home/root/Project_Relayserver/src/lib/memory_allocation/src -I/home/root/Project_Relayserver/src/lib/include  -fPIC   -Wall -Werror -o CMakeFiles/memory_allocation.dir/src/memory_allocation.c.o   -c /home/root/Project_Relayserver/src/lib/memory_allocation/src/memory_allocation.c
+[ 40%] Linking C shared library libmemory_allocation.so
+cd /home/root/Project_Relayserver/src/lib/memory_allocation && /usr/bin/cmake -E remove /home/root/Project_Relayserver/output/lib/libmemory_allocation.*
+cd /home/root/Project_Relayserver/src/lib/memory_allocation && /usr/bin/cmake -E copy /home/root/Project_Relayserver/src/lib/memory_allocation/src/*.h /home/root/Project_Relayserver/src/lib/include/
+cd /home/root/Project_Relayserver/src/lib/memory_allocation && /usr/bin/cmake -E cmake_link_script CMakeFiles/memory_allocation.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC   -shared -Wl,-soname,libmemory_allocation.so -o libmemory_allocation.so CMakeFiles/memory_allocation.dir/src/memory_allocation.c.o   -L/home/root/Project_Relayserver/ouput/lib  -Wl,-rpath,/home/root/Project_Relayserver/ouput/lib -lpthread 
+cd /home/root/Project_Relayserver/src/lib/memory_allocation && /usr/bin/cmake -E copy libmemory_allocation.* /home/root/Project_Relayserver/output/lib/
+cd /home/root/Project_Relayserver/src/lib/memory_allocation && /usr/bin/cmake -E copy /home/root/Project_Relayserver/src/lib/memory_allocation/src/*.h /home/root/Project_Relayserver/output/include//
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+[ 40%] Built target memory_allocation
+make -f src/lib/relayserver/CMakeFiles/relayserver.dir/build.make src/lib/relayserver/CMakeFiles/relayserver.dir/depend
+make[2]: Entering directory '/home/root/Project_Relayserver'
+cd /home/root/Project_Relayserver && /usr/bin/cmake -E cmake_depends "Unix Makefiles" /home/root/Project_Relayserver /home/root/Project_Relayserver/src/lib/relayserver /home/root/Project_Relayserver /home/root/Project_Relayserver/src/lib/relayserver /home/root/Project_Relayserver/src/lib/relayserver/CMakeFiles/relayserver.dir/DependInfo.cmake --color=
+Scanning dependencies of target relayserver
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+make -f src/lib/relayserver/CMakeFiles/relayserver.dir/build.make src/lib/relayserver/CMakeFiles/relayserver.dir/build
+make[2]: Entering directory '/home/root/Project_Relayserver'
+[ 50%] Building C object src/lib/relayserver/CMakeFiles/relayserver.dir/src/librelayserver.c.o
+cd /home/root/Project_Relayserver/src/lib/relayserver && /usr/bin/cc -Drelayserver_EXPORTS -I/home/root/Project_Relayserver/output/include -I/home/root/Project_Relayserver/src/lib/relayserver/src -I/home/root/Project_Relayserver/src/lib/memory_allocation/src -I/home/root/Project_Relayserver/src/lib/parson/src -I/home/root/Project_Relayserver/src/lib/include  -fPIC   -Wall -o CMakeFiles/relayserver.dir/src/librelayserver.c.o   -c /home/root/Project_Relayserver/src/lib/relayserver/src/librelayserver.c
+[ 60%] Linking C shared library librelayserver.so
+cd /home/root/Project_Relayserver/src/lib/relayserver && /usr/bin/cmake -E remove /home/root/Project_Relayserver/output/lib/librelayserver.*
+cd /home/root/Project_Relayserver/src/lib/relayserver && /usr/bin/cmake -E copy /home/root/Project_Relayserver/src/lib/relayserver/src/*.h /home/root/Project_Relayserver/src/lib/include/
+cd /home/root/Project_Relayserver/src/lib/relayserver && /usr/bin/cmake -E cmake_link_script CMakeFiles/relayserver.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC   -shared -Wl,-soname,librelayserver.so -o librelayserver.so CMakeFiles/relayserver.dir/src/librelayserver.c.o   -L/home/root/Project_Relayserver/ouput/lib  -Wl,-rpath,/home/root/Project_Relayserver/ouput/lib:/home/root/Project_Relayserver/src/lib/memory_allocation -lpthread -lcurl ../memory_allocation/libmemory_allocation.so 
+cd /home/root/Project_Relayserver/src/lib/relayserver && /usr/bin/cmake -E copy librelayserver.* /home/root/Project_Relayserver/output/lib/
+cd /home/root/Project_Relayserver/src/lib/relayserver && /usr/bin/cmake -E copy /home/root/Project_Relayserver/src/lib/relayserver/src/*.h /home/root/Project_Relayserver/output/include//
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+[ 60%] Built target relayserver
+make -f src/lib/parson/CMakeFiles/parson.dir/build.make src/lib/parson/CMakeFiles/parson.dir/depend
+make[2]: Entering directory '/home/root/Project_Relayserver'
+cd /home/root/Project_Relayserver && /usr/bin/cmake -E cmake_depends "Unix Makefiles" /home/root/Project_Relayserver /home/root/Project_Relayserver/src/lib/parson /home/root/Project_Relayserver /home/root/Project_Relayserver/src/lib/parson /home/root/Project_Relayserver/src/lib/parson/CMakeFiles/parson.dir/DependInfo.cmake --color=
+Scanning dependencies of target parson
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+make -f src/lib/parson/CMakeFiles/parson.dir/build.make src/lib/parson/CMakeFiles/parson.dir/build
+make[2]: Entering directory '/home/root/Project_Relayserver'
+[ 70%] Building C object src/lib/parson/CMakeFiles/parson.dir/src/parson.c.o
+cd /home/root/Project_Relayserver/src/lib/parson && /usr/bin/cc -Dparson_EXPORTS -I/home/root/Project_Relayserver/output/include -I/home/root/Project_Relayserver/src/lib/parson/src -I/home/root/Project_Relayserver/src/lib/relayserver/src  -fPIC   -Wall -o CMakeFiles/parson.dir/src/parson.c.o   -c /home/root/Project_Relayserver/src/lib/parson/src/parson.c
+[ 80%] Linking C shared library libparson.so
+cd /home/root/Project_Relayserver/src/lib/parson && /usr/bin/cmake -E remove /home/root/Project_Relayserver/output/lib/libparson.*
+cd /home/root/Project_Relayserver/src/lib/parson && /usr/bin/cmake -E copy /home/root/Project_Relayserver/src/lib/parson/src/*.h /home/root/Project_Relayserver/src/lib/include/
+cd /home/root/Project_Relayserver/src/lib/parson && /usr/bin/cmake -E cmake_link_script CMakeFiles/parson.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC   -shared -Wl,-soname,libparson.so -o libparson.so CMakeFiles/parson.dir/src/parson.c.o   -L/home/root/Project_Relayserver/ouput/lib  -Wl,-rpath,/home/root/Project_Relayserver/ouput/lib -lpthread 
+cd /home/root/Project_Relayserver/src/lib/parson && /usr/bin/cmake -E copy libparson.* /home/root/Project_Relayserver/output/lib/
+cd /home/root/Project_Relayserver/src/lib/parson && /usr/bin/cmake -E copy /home/root/Project_Relayserver/src/lib/parson/src/*.h /home/root/Project_Relayserver/output/include//
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+[ 80%] Built target parson
+make -f src/app/relayserver_test/CMakeFiles/relay_test_app.dir/build.make src/app/relayserver_test/CMakeFiles/relay_test_app.dir/depend
+make[2]: Entering directory '/home/root/Project_Relayserver'
+cd /home/root/Project_Relayserver && /usr/bin/cmake -E cmake_depends "Unix Makefiles" /home/root/Project_Relayserver /home/root/Project_Relayserver/src/app/relayserver_test /home/root/Project_Relayserver /home/root/Project_Relayserver/src/app/relayserver_test /home/root/Project_Relayserver/src/app/relayserver_test/CMakeFiles/relay_test_app.dir/DependInfo.cmake --color=
+Scanning dependencies of target relay_test_app
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+make -f src/app/relayserver_test/CMakeFiles/relay_test_app.dir/build.make src/app/relayserver_test/CMakeFiles/relay_test_app.dir/build
+make[2]: Entering directory '/home/root/Project_Relayserver'
+[ 90%] Building C object src/app/relayserver_test/CMakeFiles/relay_test_app.dir/src/relay_test_app.c.o
+cd /home/root/Project_Relayserver/src/app/relayserver_test && /usr/bin/cc  -I/home/root/Project_Relayserver/output/include -I/home/root/Project_Relayserver/src/lib/include -I/home/root/Project_Relayserver/src/lib/memory_allocation/src -I/home/root/Project_Relayserver/src/lib/relayserver/src -I/home/root/Project_Relayserver/src/lib/parson/src  -Wall -o CMakeFiles/relay_test_app.dir/src/relay_test_app.c.o   -c /home/root/Project_Relayserver/src/app/relayserver_test/src/relay_test_app.c
+[100%] Linking C executable relay_test_app
+cd /home/root/Project_Relayserver/src/app/relayserver_test && /usr/bin/cmake -E remove /home/root/Project_Relayserver/output/bin//relay_test_app
+cd /home/root/Project_Relayserver/src/app/relayserver_test && /usr/bin/cmake -E cmake_link_script CMakeFiles/relay_test_app.dir/link.txt --verbose=1
+/usr/bin/cc    CMakeFiles/relay_test_app.dir/src/relay_test_app.c.o  -o relay_test_app   -L/home/root/Project_Relayserver/ouput/lib  -Wl,-rpath,/home/root/Project_Relayserver/ouput/lib:/home/root/Project_Relayserver/src/lib/relayserver:/home/root/Project_Relayserver/src/lib/parson:/home/root/Project_Relayserver/src/lib/memory_allocation -lpthread -lcurl ../../lib/relayserver/librelayserver.so ../../lib/parson/libparson.so ../../lib/memory_allocation/libmemory_allocation.so 
+make[2]: Leaving directory '/home/root/Project_Relayserver'
+make[1]: Leaving directory '/home/root/Project_Relayserver'
