@@ -1046,7 +1046,7 @@ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_He
                                 send_info.div_num  = send_info.div_num  + 1;
                                 printf("send_p_n:%d/%d\n", send_p_n, Now_Header->Message_size);
                             }
-                            usleep(10 * 1000);
+                            usleep(50 * 1000);
                         }
                         
                         #if 0 
