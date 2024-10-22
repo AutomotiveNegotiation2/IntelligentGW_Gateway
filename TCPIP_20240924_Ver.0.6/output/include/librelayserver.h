@@ -152,7 +152,7 @@ static int f_i_RelayServer_TcpIp_Setup_Socket(int *Socket, int Timer, bool Linge
 static int f_i_Hex2Dec(char data);
 static struct data_header_info_t f_s_Parser_Data_Header(char *Data, size_t Data_Size);
 
-extern void F_RealyServer_Print_Debug(enum debug_lever_e Debug_Level, const char *format, ...);
+extern void F_RelayServer_Print_Debug(enum debug_lever_e Debug_Level, const char *format, ...);
 extern void* Th_i_RelayServer_TickTimer(void *Data);
 
 extern void *Th_RelayServer_Job_Task(void *Data);

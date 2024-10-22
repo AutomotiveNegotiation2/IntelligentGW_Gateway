@@ -161,28 +161,28 @@ extern struct socket_info_t F_s_RelayServer_TcpIp_Initial_Server(char *Device_Na
 extern int F_i_RelayServer_TcpIp_Get_Address(char *Device_Name, char Output_IPv4Adrress[40]);
 extern int F_i_RelayServer_TcpIp_Task_Run(struct socket_info_t *Socket_Info);
 
-static void* th_RelayServer_TcpIp_Task_Server(void *socket_info);
-static int f_i_RelayServer_TcpIp_Bind(int *Server_Socket, struct sockaddr_in Socket_Addr);
-static int f_i_RelayServer_TcpIp_Setup_Socket(int *Socket, int Timer, bool Linger);
+ void* th_RelayServer_TcpIp_Task_Server(void *socket_info);
+ int f_i_RelayServer_TcpIp_Bind(int *Server_Socket, struct sockaddr_in Socket_Addr);
+ int f_i_RelayServer_TcpIp_Setup_Socket(int *Socket, int Timer, bool Linger);
 
 //General Type Code
-static int f_i_Hex2Dec(char data);
-static struct data_header_info_t f_s_Parser_Data_Header(char *Data, size_t Data_Size);
+ int f_i_Hex2Dec(char data);
+ struct data_header_info_t f_s_Parser_Data_Header(char *Data, size_t Data_Size);
 
-extern void F_RealyServer_Print_Debug(enum debug_lever_e Debug_Level, const char *format, ...);
+extern void F_RelayServer_Print_Debug(enum debug_lever_e Debug_Level, const char *format, ...);
 extern void* Th_i_RelayServer_TickTimer(void *Data);
 
 extern void *Th_RelayServer_Job_Task(void *Data);
 
 enum job_type_e f_e_RelayServer_Job_Process_Do(struct data_header_info_t *Now_Header, uint8_t **Data, int Client_is, struct Memory_Used_Data_Info_t *Data_Info);
-static struct client_data_info_t f_s_RelayServer_Job_Process_Initial(struct data_header_info_t *Now_Header, uint8_t *Data, int *err);
-static int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header, uint8_t *Data);
-static int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Header, uint8_t **Data, struct Memory_Used_Data_Info_t *Data_Info);
-static int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Header, uint8_t **Data);
-static int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_Header, uint8_t **Data);
-static int f_i_RelayServer_Job_Process_Finish(struct data_header_info_t *Now_Header, uint8_t *Data, int Client_is);
-static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms);
-static int f_i_RelayServer_HTTP_Check_URL(const char *url);
+ struct client_data_info_t f_s_RelayServer_Job_Process_Initial(struct data_header_info_t *Now_Header, uint8_t *Data, int *err);
+ int f_i_RelayServer_Job_Process_InfoReport(struct data_header_info_t *Now_Header, uint8_t *Data);
+ int f_i_RelayServer_Job_Process_InfoRequest(struct data_header_info_t *Now_Header, uint8_t **Data, struct Memory_Used_Data_Info_t *Data_Info);
+ int f_i_RelayServer_Job_Process_InfoResponse(struct data_header_info_t *Now_Header, uint8_t **Data);
+ int f_i_RelayServer_Job_Process_InfoIndication(struct data_header_info_t *Now_Header, uint8_t **Data);
+ int f_i_RelayServer_Job_Process_Finish(struct data_header_info_t *Now_Header, uint8_t *Data, int Client_is);
+ int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms);
+ int f_i_RelayServer_HTTP_Check_URL(const char *url);
 
 #define DEFAULT_HTTP_INFO_SIZE 512
 #define DEFAULT_HTTP_METHOD "POST"
@@ -228,8 +228,8 @@ extern uint8_t *G_HTTP_Request_Info_Fireware;
 extern int F_i_RelayServer_HTTP_Initial(uint8_t *G_HTTP_Request_Info, struct http_info_t *http_info);
 size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body, size_t Body_Size, uint8_t **Http_Request);
 
-static void f_v_RelayServer_HTTP_Message_Parser(char *data_ptr, char *compare_word, void **ret, size_t *ret_len);
-static int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *http_socket_info, uint8_t **out_data);
+void f_v_RelayServer_HTTP_Message_Parser(char *data_ptr, char *compare_word, void **ret, size_t *ret_len);
+int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *http_socket_info, uint8_t **out_data);
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp);
 void *th_RelayServer_HTTP_Task_Receive(void *data);
 int f_i_RelayServer_HTTP_WaitOnSocket(curl_socket_t sockfd, int for_recv, long timeout_ms);

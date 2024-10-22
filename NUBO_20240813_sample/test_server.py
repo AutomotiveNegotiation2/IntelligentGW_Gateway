@@ -51,7 +51,7 @@ def bytes_trans(int_val, bytes_info, start, end):
 #         chunk = message[i:i+chunk_size]
 #         sock.sendto(chunk, addr)
 
-def send_large_message(sock, message, addr, chunk_size=10240, timeout=0.5):
+def send_large_message(sock, message, addr, chunk_size=1024, timeout=1):
     sock.setblocking(False)
     
     total_sent = 0

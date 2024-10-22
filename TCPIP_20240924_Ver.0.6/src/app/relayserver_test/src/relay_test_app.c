@@ -30,7 +30,7 @@ int main()
     http_info.Request_Line.To = DEFAULT_HTTP_SERVER_PROGRAM_URL;
     http_info.Request_Line.What = "HTTP";
     http_info.Request_Line.Version = "1.0";
-    http_info.HOST = "192.168.0.2/";
+    http_info.HOST = "192.168.137.1/";
     http_info.PORT = "80";
     http_info.ACCEPT = "*/*";
     http_info.CONTENT_TYPE = "Application/octet-stream";
@@ -43,8 +43,7 @@ int main()
     F_i_RelayServer_HTTP_Initial(G_HTTP_Request_Info_Fireware, &http_info);
 
     int port = 50000;
-    struct socket_info_t Server_Info = F_s_RelayServer_TcpIp_Initial_Server(NULL, &port, &ret_err);
-    printf("%s, %d\n", __func__, Server_Info.Socket);
+    struct socket_info_t Server_Info = F_s_RelayServer_TcpIp_Initial_Server("eth1", &port, &ret_err);
     F_i_RelayServer_TcpIp_Task_Run(&Server_Info);
 
     pthread_t Task_ID_Job;
@@ -61,6 +60,12 @@ int main()
     printf("[DRIVING HISTORY] START NUVO Job Task.\n");
     pthread_create(&Task_ID_NOBO, NULL, Th_RelayServer_NUVO_Client_Task, (void*)&nubo_task);
     pthread_detach(Task_ID_NOBO);
+    #endif
+
+    #if 0
+    pthread_t Task_ID_V2X;
+    pthread_create(&Task_ID_V2X, NULL, Th_RelayServer_V2X_UDP_Task, (void*)NULL);
+    pthread_detach(Task_ID_V2X);
     #endif
 
     while(1)
