@@ -865,10 +865,12 @@ Parameter[Out]
         switch(Now_Header->Job_State)
         {
             case FirmwareInfoRequest:
-                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Fireware, Payload, 16, &http_socket_info->request);
+                char *TEST_DATA = "ECU_0001_300";
+                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Fireware, TEST_DATA, 12, &http_socket_info->request);
                 break;
             case ProgramInfoRequest:
-                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Program, Payload, 16, &http_socket_info->request);
+                char *TEST_DATA = "IDS_0001_300";
+                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Program, TEST_DATA, 12, &http_socket_info->request);
                 break;
             default:
                 F_RelayServer_Print_Debug(2, "[Error][%s][Job_State:%d]\n", __func__, Now_Header->Job_State);
