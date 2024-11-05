@@ -918,7 +918,7 @@ Parameter[Out]
                 URL = malloc(strlen("https://itp-self.wtest.biz/v1/system/firmwareDownload.php?fileSeq=350"));
                 sprintf(URL, "%s", "https://itp-self.wtest.biz/v1/system/firmwareDownload.php?fileSeq=350");
             }
-
+            printf("URL:%s\n", URL);
             CURL *curl_handle;
             CURLcode res;
             
@@ -936,7 +936,6 @@ Parameter[Out]
             curl_handle = curl_easy_init();
             if(curl_handle)
             {
-                
                 curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT_MS , 1000);
                 curl_easy_setopt(curl_handle, CURLOPT_URL, URL);
                 curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
@@ -944,7 +943,6 @@ Parameter[Out]
                 
                 res = curl_easy_perform(curl_handle);
                 curl_easy_cleanup(curl_handle);
-                curl_global_cleanup();
                 
                 if(res != CURLE_OK) {
                     F_RelayServer_Print_Debug(0, "[Error][%s]: %s\n", __func__, curl_easy_strerror(res));
