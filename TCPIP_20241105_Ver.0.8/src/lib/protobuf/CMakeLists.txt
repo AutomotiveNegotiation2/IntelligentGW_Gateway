@@ -14,11 +14,10 @@ set(GENERATED_PROTO_DIR ${TARGET_ROOT})
 
 add_custom_command(
     OUTPUT ./protobuf.pb-c.c ./protobuf.pb-c.h
-    COMMAND protoc-c --c_out=${PROJECT_ROOT} -I ${CMAKE_SOURCE_DIR} ${PROTO_FILE}
+    COMMAND protoc-c --c_out=${PROJECT_ROOT} -I ${PROTO_FILE}
     DEPENDS ${PROTO_FILE}
     COMMENT "Running protoc-c on ${PROTO_FILE}"
 )
-
 
 # 생성된 파일을 소스로 추가
 include_directories(${TARGET_LIB} PRIVATE ${PROJECT_ROOT})

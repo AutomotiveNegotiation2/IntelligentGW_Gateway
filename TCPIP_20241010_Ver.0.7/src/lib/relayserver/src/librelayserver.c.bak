@@ -2179,7 +2179,7 @@ extern void *Th_RelayServer_V2X_UDP_Task(void *arg)
                         t_msg_res->header.MsgType = 5;
                         t_msg_res->header.PacketLen = htons(sizeof(DNM_Res));
                         
-                        memcpy(&t_msg_res->Receiver, temp_sendr_id, 4);
+                        memcpy(&t_msg_res->Sender, temp_sendr_id, 4);
                         t_msg_res->Receiver = t_msg_res->Sender;
                         //t_msg_req->Receiver = htonl(11);
                         t_msg_res->AgreeFlag = 0; //Default - Agreement 1, Disagreement 0

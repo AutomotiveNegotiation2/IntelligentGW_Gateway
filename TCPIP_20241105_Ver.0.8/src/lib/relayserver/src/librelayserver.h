@@ -191,12 +191,13 @@ enum job_type_e f_e_RelayServer_Job_Process_Do(struct data_header_info_t *Now_He
 
 #define DEFAULT_HTTP_INFO_SIZE 512
 #define DEFAULT_HTTP_METHOD "POST"
-#define DEFAULT_HTTP_SERVER_FIREWARE_URL "http://192.168.137.1/download/program/"
-#define DEFAULT_HTTP_SERVER_PROGRAM_URL "http://192.168.137.1/download/program/"
+#define DEFAULT_HTTP_SERVER_FIREWARE_URL  "https:/""/itp-self.wtest.biz/v1/system/verCheckForFiles.php"
+#define DEFAULT_HTTP_SERVER_PROGRAM_URL  "https:/""/itp-self.wtest.biz/v1/system/verCheckForFiles.php"
 #define DEFAULT_HTTP_VERSION "1.1"
-#define DEFAULT_HTTP_ACCEPT "*/*"
+#define DEFAULT_HTTP_ACCEPT "*/""*"
 #define DEFAULT_HTTP_CONTENT_TYPE "Application/octet-stream"
-
+#define DEFAULT_HTTP_FROMDATA_BOUNDARY "----RelayServerFormBoundary"
+#define DEFAULT_HTTP_HOST "itp-self.wtest.biz"
 #define HTTP_BUFFER_SIZE 10240
 #define HTTP_SOCKET_TIMEOUT 1000L //ms
 #define MAX_UDP_RECV_DATA 2048
@@ -231,13 +232,14 @@ extern uint8_t *G_HTTP_Request_Info_Program;
 extern uint8_t *G_HTTP_Request_Info_Fireware;
 
 extern int F_i_RelayServer_HTTP_Initial(uint8_t *G_HTTP_Request_Info, struct http_info_t *http_info);
-size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body, size_t Body_Size, uint8_t **Http_Request);
+size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, char *Body, size_t Body_Size, uint8_t **Http_Request);
 
 void f_v_RelayServer_HTTP_Message_Parser(char *data_ptr, char *compare_word, void **ret, size_t *ret_len);
 int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *http_socket_info, uint8_t **out_data);
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp);
 void *th_RelayServer_HTTP_Task_Receive(void *data);
 int f_i_RelayServer_HTTP_WaitOnSocket(curl_socket_t sockfd, int for_recv, long timeout_ms);
+static char* f_c_RelayServer_HTTP_Json_Object_Parser(const char *json_object, char *key);
 
 enum NUVO_signal_state_e
 {
@@ -393,3 +395,5 @@ typedef struct
 } __attribute__((__packed__)) DNM_Done; 
 
 extern void *Th_RelayServer_V2X_UDP_Task(void *arg);
+void f_v_Timestamp_Get();
+char *Timestamp_Print();

@@ -168,12 +168,13 @@ static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms);
 
 #define DEFAULT_HTTP_INFO_SIZE 512
 #define DEFAULT_HTTP_METHOD "POST"
-#define DEFAULT_HTTP_SERVER_FIREWARE_URL  "http://192.168.0.2/download/program/"
-#define DEFAULT_HTTP_SERVER_PROGRAM_URL  "http://192.168.0.2/download/program/"
+#define DEFAULT_HTTP_SERVER_FIREWARE_URL  "https:/""/itp-self.wtest.biz/v1/system/verCheckForFiles.php"
+#define DEFAULT_HTTP_SERVER_PROGRAM_URL  "https:/""/itp-self.wtest.biz/v1/system/verCheckForFiles.php"
 #define DEFAULT_HTTP_VERSION "1.1"
-#define DEFAULT_HTTP_ACCEPT "*/*"
+#define DEFAULT_HTTP_ACCEPT "*/""*"
 #define DEFAULT_HTTP_CONTENT_TYPE "Application/octet-stream"
-
+#define DEFAULT_HTTP_FROMDATA_BOUNDARY "----RelayServerFormBoundary"
+#define DEFAULT_HTTP_HOST "itp-self.wtest.biz"
 #define HTTP_BUFFER_SIZE 10240
 #define HTTP_SOCKET_TIMEOUT 1000L //ms
 #define MAX_UDP_RECV_DATA 2048
@@ -211,6 +212,7 @@ extern uint8_t *G_HTTP_Request_Info_Fireware;
 
 extern int F_i_RelayServer_HTTP_Initial(uint8_t *G_HTTP_Request_Info, struct http_info_t *http_info);
 size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body, size_t Body_Size, uint8_t **Http_Request);
+static char *f_c_RelayServer_HTTP_Json_Object_Parser(const char *json_object, char *key);
 
 int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct http_socket_info_t *curl_info, uint8_t **out_data);
 void *th_RelayServer_HTTP_Task_Receive(void *data);

@@ -865,13 +865,17 @@ Parameter[Out]
         switch(Now_Header->Job_State)
         {
             case FirmwareInfoRequest:
-                char *TEST_DATA = "ECU_0001_300";
-                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Fireware, TEST_DATA, 12, &http_socket_info->request);
+            {
+                char *TEST_DATA_ECU = "ECU_0001_300";
+                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Fireware, TEST_DATA_ECU, 12, &http_socket_info->request);
                 break;
+            }
             case ProgramInfoRequest:
-                char *TEST_DATA = "IDS_0001_300";
-                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Program, TEST_DATA, 12, &http_socket_info->request);
+            {
+                char *TEST_DATA_IDS = "IDS_0001_300";
+                http_socket_info->request_len = f_i_RelayServer_HTTP_Payload(G_HTTP_Request_Info_Program, TEST_DATA_IDS, 12, &http_socket_info->request);
                 break;
+            }
             default:
                 F_RelayServer_Print_Debug(2, "[Error][%s][Job_State:%d]\n", __func__, Now_Header->Job_State);
                 return -1;
@@ -1204,28 +1208,56 @@ int F_i_RelayServer_HTTP_Initial(uint8_t *G_HTTP_Request_Info, struct http_info_
     return 0;
 }
 
-size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, uint8_t *Body, size_t Body_Size, uint8_t **Http_Request)
+size_t f_i_RelayServer_HTTP_Payload(uint8_t *G_HTTP_Request_Info, char *Body, size_t Body_Size, uint8_t **Http_Request)
 {
     size_t request_len;
-    uint8_t *request = malloc(sizeof(uint8_t) * 526);
+    char *request = malloc(sizeof(char) * 512);
     if(G_HTTP_Request_Info){
         memcpy(request, G_HTTP_Request_Info, strlen((char*)G_HTTP_Request_Info));
     }else{
         return -1;
     }
-    
+    char temp_body[512] = {NULL, };
+    int temp_body_len = 0;
     if(Body)
     {
-        if(Body_Size > 0)
-        {
-            sprintf((char*)request, "%s%s: %ld\r\n", request , "Content-Length", Body_Size);
+        if(strstr(request, "multipart/form-data"))
+        {  
+            memcpy(temp_body + temp_body_len, DEFAULT_HTTP_FROMDATA_BOUNDARY, strlen(DEFAULT_HTTP_FROMDATA_BOUNDARY));
+            temp_body_len += strlen(DEFAULT_HTTP_FROMDATA_BOUNDARY);
+            memcpy(temp_body + temp_body_len, "\r\n", 2);
+            temp_body_len += 2;
+            char *from_boundary= "Content-Disposition:form-data;name=\"version\"\r\n";
+            memcpy(temp_body + temp_body_len, from_boundary, strlen(from_boundary));
+            temp_body_len += strlen(from_boundary);
+            memcpy(temp_body + temp_body_len, "\r\n", 2);
+            temp_body_len += 2;
+
+            memcpy(temp_body + temp_body_len, Body, Body_Size);
+            temp_body_len += Body_Size;
+            memcpy(temp_body + temp_body_len, "\r\n", 2);
+            temp_body_len += 2;
+
+            memcpy(temp_body + temp_body_len, DEFAULT_HTTP_FROMDATA_BOUNDARY, strlen(DEFAULT_HTTP_FROMDATA_BOUNDARY));
+            temp_body_len += strlen(DEFAULT_HTTP_FROMDATA_BOUNDARY);
+            memcpy(temp_body + temp_body_len, "--", 2);
+            temp_body_len += 2;
+        }else if(strstr(request, "Application/json")){
+
+        }else if(strstr(request, "Application/octet-stream")){
+            memcpy(temp_body + temp_body_len, Body, Body_Size);
+            temp_body_len += Body_Size;
         }
-        sprintf((char*)request, "%s\r\n", request);
-        request_len = strlen(request) + Body_Size;
-        memcpy(request + strlen((char*)request), Body, Body_Size);
+        
+        if(temp_body_len > 0)
+        {
+            sprintf(request, "%s%s: %ld\r\n", request , "Content-Length", temp_body_len);
+        }
+        sprintf(request, "%s\r\n", request);
+        request_len = strlen(request) + temp_body_len;
+        memcpy(request + strlen(request), temp_body, temp_body_len);
         *Http_Request = malloc(sizeof(uint8_t) * request_len);
         memcpy(*Http_Request, request, request_len);
-        F_RelayServer_Print_Debug(4,"[Debug][%s][Free:%d, Address:%p]\n", __func__, __LINE__, request);
         Relay_safefree(request);
     }else {
         return -1;
@@ -1342,17 +1374,22 @@ int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct 
             curl_easy_cleanup(curl);
             if(buf_len > 0)
             {
-                int http_body_len;
                 char* ptr = strstr(buf, "\r\n\r\n");
                 ptr = ptr + 4;
-                http_body_len = buf_len - (ptr - &buf[0]); /// -2 delete /r/n
-                char http_body[http_body_len];
-                memcpy(http_body, ptr, http_body_len);
-                uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
+                //json parsing
+                char *url_length_json = f_c_RelayServer_HTTP_Json_Object_Parser(ptr, "url_length");
+                int http_body_len = atoi(url_length_json);
+                Relay_safefree(url_length_json);
+
                 if(http_body_len > 0)
                 {
+                    char *url_json = f_c_RelayServer_HTTP_Json_Object_Parser(ptr, "url\"");
+                    char http_body[http_body_len];
+                    memcpy(http_body, url_json, http_body_len);
+                    Relay_safefree(url_json);
                     uint8_t *Http_Recv_data = malloc(sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
                     memset(Http_Recv_data, 0x00, sizeof(uint8_t) * (http_body_len + HEADER_SIZE));
+
                     switch(Now_Header->Job_State)
                     {
                         case FirmwareInfoRequest:
@@ -1374,11 +1411,19 @@ int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct 
                     memcpy(Http_Recv_data + HEADER_SIZE, http_body, http_body_len);        
                     memset(http_body, 0x00, http_body_len);
                     Relay_safefree(*out_data);
+                    
                     *out_data = Http_Recv_data;
+                    goto th_RelayServer_HTTP_Task_Receive_OUT;
+                }else{
+                    char *message_json = f_c_RelayServer_HTTP_Json_Object_Parser(ptr, "message");
+                    printf("[DEBUG] %s\n", message_json);
+                    Relay_safefree(message_json);
+                    
+                    Now_Header->Job_State = -1;
                     goto th_RelayServer_HTTP_Task_Receive_OUT;
                 }
 
-            }
+            } 
     th_RelayServer_HTTP_Task_Receive_OUT:
 
         /* always cleanup */
@@ -1427,6 +1472,32 @@ int f_i_RelayServer_HTTP_Task_Run(struct data_header_info_t *Now_Header, struct 
     }
     *ret_len = 0;
 }
+/**
+ * @brief 
+ * 
+ * @param json_object 
+ * @param key 
+ * @return 
+ */
+static char* f_c_RelayServer_HTTP_Json_Object_Parser(const char *json_object, char *key)
+{
+    int ret;
+    char *key_ptr = strstr(json_object, key);
+    
+    char *tmp = malloc(strlen(key_ptr));
+    memcpy(tmp, key_ptr, strlen(key_ptr));
+
+    strtok(tmp, "\"");
+    strtok(NULL, "\"");
+    char *ptr = strtok(NULL, "\"");
+    size_t ptr_len = strlen(ptr);
+
+    char *out = malloc(ptr_len);
+    memcpy(out, ptr, ptr_len);
+    free(tmp);
+    return out;
+}
+
 
 int f_i_RelayServer_HTTP_WaitOnSocket(curl_socket_t sockfd, int for_recv, long timeout_ms)
 {
@@ -1856,15 +1927,42 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                         printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to Recvive Driving History Data]...... %ld[s]\n", time(NULL) - now);while(getchar() != '\n');printf("\x1B[1A\r");
                         struct sockaddr_in from_adr;
                         socklen_t from_adr_sz;
-                        char *recv_file_data = malloc(1);
-                        int total_recv_len = 0;
-                        time_t recv_end_time;;
+                        size_t total_recv_len = 0;
+                        time_t recv_end_time;
+                        char *large_file_name;
+                        int large_file_name_length = 0;
+                        char *large_file_path;
+#define DEFAULT_HUGE_FILE_FROM_NUVO_SAVE_LOCATION "./file_DB/From_Nuvo/"
                         printf("[DRIVING HISTORY] [Recvive Driving History Data] Start Recvive From NUVO ...... %ld[s]\n", time(NULL) - now);
-                        while(1)
-                        {
+                        for(int tt = 0; tt < 60 * 2; tt++)
+                        {   
                             char recv_buf[MAX_UDP_RECV_DATA] = {0,};
                             int recv_len = 0;
                             recv_len = recvfrom(nubo_info->sock , recv_buf, MAX_UDP_RECV_DATA, 0, (struct sockaddr*)&from_adr, &from_adr_sz);
+                            if(recv_buf[3] == 0xFC)
+                            {
+                                char *large_file_name_name_length_ptr = malloc(sizeof(int));
+                                memcpy(large_file_name_name_length_ptr, recv_buf + 4, sizeof(int));
+                                large_file_name_length = atoi(large_file_name_name_length_ptr);
+                                Relay_safefree(large_file_name_name_length_ptr);
+
+                                large_file_name = malloc(large_file_name_length);
+                                memcpy(large_file_name, recv_buf + 8, large_file_name_length);
+                                large_file_path = malloc(strlen(DEFAULT_HUGE_FILE_FROM_NUVO_SAVE_LOCATION) + large_file_name_length);
+                                sprintf(large_file_path, "%s%s", DEFAULT_HUGE_FILE_FROM_NUVO_SAVE_LOCATION, large_file_name);
+                                
+                            }
+                            
+                            if(access(large_file_path, F_OK) == 0)
+                            {
+                                printf("[DRIVING HISTORY] [Recvive Driving History Data] Done Recvive Data From %s:%d ...... %ld[s]\n", inet_ntoa(from_adr.sin_addr), htons(from_adr.sin_port), time(NULL) - now);
+                                break;
+                            }else{
+                                printf("[DRIVING HISTORY] [Recvive Driving History Data] Waiting Recvive Data From %s:%d ...... %ld[s]\n", inet_ntoa(from_adr.sin_addr), htons(from_adr.sin_port), time(NULL) - now);
+                                printf("\033[A");
+                            }
+
+                            #if 0 
                             if(recv_len > 0)
                             {
                                 printf("[DRIVING HISTORY] [Recvive Driving History Data] Recvive Data From %s:%d ...... %d/%ld\n", inet_ntoa(from_adr.sin_addr), htons(from_adr.sin_port), total_recv_len, file_data_len);
@@ -1890,23 +1988,49 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
                                     break;
                                 }
                             }
+                            #endif
+                            usleep(100 * 1000);
                         }
                         printf("\n");
-                        _DEBUG_LOG
+                        FILE *recv_file_data = fopen(large_file_path, "rb");
+                        if (recv_file_data == NULL) {
+                            printf("파일을 열 수 없습니다: %s\n", large_file_path);
+                            return -1;
+                        }
+                        fseek(recv_file_data, 0, SEEK_END);
+                        // 현재 위치(파일 끝)의 오프셋을 가져와 파일 크기로 사용
+                        total_recv_len = ftell(recv_file_data);
+                        fseek(recv_file_data, 0, SEEK_SET);
                         ret = f_i_RelayServer_Protobuf_Input_Data(&g_protobuf_data, 1, recv_file_data, total_recv_len);_DEBUG_LOG
                         ret = f_i_RelayServer_Protobuf_Input_Data(&g_protobuf_data, 2, NULL, 0);_DEBUG_LOG
                         _DEBUG_LOG
                         FileData file_data = FILE_DATA__INIT;_DEBUG_LOG
                         ret = f_i_RelayServer_Protobuf_Create_Abs(&file_data, &g_protobuf_data);_DEBUG_LOG
           
-                        char* proto_file_path = "/home/root/Project_Relayserver/nubo_sample";
+                        char* proto_file_path = "./file_DB/History_Data/";
                         ret = access(proto_file_path, F_OK);_DEBUG_LOG
                         char *file_path = malloc(sizeof(char) * strlen(file_name) + strlen(proto_file_path));_DEBUG_LOG
                         sprintf(file_path, "%s/%s", proto_file_path, file_name);_DEBUG_LOG
                         printf("file_path:%s, %ld\n", file_path, strlen(file_path));_DEBUG_LOG
 
                         protobuf_savetofile(file_path, &file_data);_DEBUG_LOG
+                        fclose(recv_file_data);
 
+                        printf("[DRIVING HISTORY] [Combine Start Driving History Data] ...... %ld[s]\n", time(NULL) - now);
+                        sleep(3);
+                        printf("[DRIVING HISTORY] [Combine Done Driving History Data] ...... %ld[s]\n", time(NULL) - now);
+
+
+                        printf("[DRIVING HISTORY] [Combine Done] File Name ...... %s\n", file_name);
+                        printf("[DRIVING HISTORY] [Combine Done] File Length ...... %ld[byte]\n", file_data_len);
+                        printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send DRIVING HISTORY DATA To Server] ...... File_Name:" "\033[0;31m" "%s" "\033[0;0m" "\n", file_name);while(getchar() != '\n');printf("\x1B[1A\r");
+                        char cmd[256] = {0,};
+                        char *url_nuvo = "https://itp-self.wtest.biz//v1/system/firmwareUpload.php";
+
+                        sprintf(cmd, "curl -F file=@example.httpbody -F title=%s %s > /dev/null", file_path, url_nuvo); 
+                        memset(cmd, 0x00, 256);
+
+                        sleep(2);
                         goto GW_JOB_BY_NUBO_DONE;_DEBUG_LOG
                         break;
                     }
@@ -1992,21 +2116,7 @@ No_GW_SLEEP_CONNECTIONING_NUVO:
 
 GW_JOB_BY_NUBO_DONE:
 
-    printf("[DRIVING HISTORY] [Combine Start Driving History Data] ...... %ld[s]\n", time(NULL) - now);
-    sleep(3);
-    printf("[DRIVING HISTORY] [Combine Done Driving History Data] ...... %ld[s]\n", time(NULL) - now);
 
-
-    printf("[DRIVING HISTORY] [Combine Done] File Name ...... %s\n", file_name);
-    printf("[DRIVING HISTORY] [Combine Done] File Length ...... %ld[byte]\n", file_data_len);
-    printf("\n");printf("[DRIVING HISTORY] " "\033[0;33m" "Press Any Key" "\033[0;0m" " to [Send DRIVING HISTORY DATA To Server] ...... File_Name:" "\033[0;31m" "%s" "\033[0;0m" "\n", file_name);while(getchar() != '\n');printf("\x1B[1A\r");
-    char cmd[256] = {0,};
-    char *url_nuvo = "https://itp-self.wtest.biz//v1/system/firmwareUpload.php";
-
-    sprintf(cmd, "curl -F file=@example.httpbody -F title=./nubo_sample/%s %s > /dev/null", file_name, url_nuvo); //nubo_sample/2024610_044658_000.zip
-    system(cmd);
-    memset(cmd, 0x00, 256);
-    sleep(2);
     
 CONNECTION_REPEAT_MAX:
 
@@ -2096,6 +2206,14 @@ CONNECTION_REPEAT_MAX:
 #define _V2X_ENABLE 1
 #if _V2X_ENABLE
 
+#define DEFAULT_TIMESTAMP_SIZE 19
+#define DEFAULT_V2X_SAVE_FILE_PATH "./file_DB/v2x_history/"
+
+char g_timestamp[DEFAULT_TIMESTAMP_SIZE];
+
+bool g_v2x_data_save_start;
+bool g_v2x_file_is;
+
 static void Debug_Msg_Print_Data(int msgLv, unsigned char* data, int len)
 {
     int rep;
@@ -2145,8 +2263,35 @@ extern void *Th_RelayServer_V2X_UDP_Task(void *arg)
 
     int ret_recv, ret_send, recv_len;
 
+    FILE *v2x_file_db;
+    int ptr_now = 0;
+    f_v_Timestamp_Get();
+    char *v2x_file_path = malloc(sizeof(char) * (strlen(g_timestamp) * 2) + strlen(DEFAULT_V2X_SAVE_FILE_PATH) - 3);
+    
+    memcpy(v2x_file_path + ptr_now, DEFAULT_V2X_SAVE_FILE_PATH, strlen(DEFAULT_V2X_SAVE_FILE_PATH));
+    ptr_now += strlen(DEFAULT_V2X_SAVE_FILE_PATH);
+    memcpy(v2x_file_path + ptr_now, g_timestamp, strlen(g_timestamp) - 4);
+    ptr_now += strlen(g_timestamp) - 4;
+    memcpy(v2x_file_path + ptr_now, "/", 1);
+    ptr_now += 1;
+    if(!access(v2x_file_path, F_OK))
+    {
+        mkdir(v2x_file_path);
+    }
+
     while(1)
     {
+        if(g_v2x_data_save_start && !g_v2x_file_is)
+        {
+            f_v_Timestamp_Get();
+            memcpy(v2x_file_path + ptr_now, g_timestamp, 19);
+            v2x_file_db = fopen(v2x_file_path, "wb");
+            if(v2x_file_db)
+            {
+                g_v2x_file_is = true;
+            }
+        }
+         
         struct sockaddr_in client_addr;
         bzero(&client_addr,sizeof(client_addr));
         char msg[1024] = {0,};
@@ -2157,6 +2302,24 @@ extern void *Th_RelayServer_V2X_UDP_Task(void *arg)
             Msg_Header *t_msg_hdr = (Msg_Header *)msg;            
             if(t_msg_hdr->MagicKey == 0xF1F1)
             {
+                if(g_v2x_data_save_start && g_v2x_file_is)
+                {
+                    char *file_data_buf = malloc(sizeof(char) * (1 + 19 + 4 + ret_recv + 1));
+                    ptr_now = 0;
+                    memcpy(file_data_buf + ptr_now, 0xA8, 1);
+                    ptr_now += 1;
+                    f_v_Timestamp_Get();
+                    memcpy(file_data_buf + ptr_now, g_timestamp, strlen(g_timestamp));
+                    ptr_now += 19;
+                    memcpy(file_data_buf + ptr_now, &ret_recv, sizeof(int));
+                    ptr_now += sizeof(int);
+                    memcpy(file_data_buf + ptr_now, msg, ret_recv);
+                    ptr_now += ret_recv;
+                    memcpy(file_data_buf + ptr_now, 0x38, 1);
+                    ptr_now += 1;
+                    fwrite(file_data_buf, sizeof(char), ptr_now, v2x_file_db);
+                    Relay_safefree(file_data_buf);
+                }
                 DNM_Req *t_msg_req =(DNM_Req *)msg;
                 switch(t_msg_req->header.MsgType)
                 {
@@ -2166,7 +2329,7 @@ extern void *Th_RelayServer_V2X_UDP_Task(void *arg)
                     }
                     case 4://DNM_REQ
                     {
-                        printf("[DEBUG] recvfrom() UDP read len : %d\n", recv_len);
+                        printf("[DEBUG] recvfrom() UDP read len : %d\n", ret_recv);
                         printf("[DEBUG] t_msg_hdr->MagicKey = %04X\n", t_msg_hdr->MagicKey);
                         printf("[DEBUG] t_msg_hdr->MsgType = %d\n", t_msg_hdr->MsgType);
                         printf("[DEBUG] t_msg_hdr->PacketLen = %d\n", t_msg_hdr->PacketLen);
@@ -2180,7 +2343,7 @@ extern void *Th_RelayServer_V2X_UDP_Task(void *arg)
                         t_msg_res->header.PacketLen = htons(sizeof(DNM_Res));
                         
                         memcpy(&t_msg_res->Sender, temp_sendr_id, 4);
-                        t_msg_res->Receiver = t_msg_res->Sender;
+                        t_msg_res->Receiver = t_msg_req->Sender;
                         //t_msg_req->Receiver = htonl(11);
                         t_msg_res->AgreeFlag = 0; //Default - Agreement 1, Disagreement 0
                         
@@ -2210,7 +2373,11 @@ extern void *Th_RelayServer_V2X_UDP_Task(void *arg)
         }
 
     }
-
+    if(g_v2x_data_save_start && g_v2x_file_is)
+    {
+        fclose(v2x_file_db);
+    }
+    Relay_safefree(v2x_file_path);
     return (void*)NULL;
 }
 
@@ -2300,3 +2467,21 @@ f_i_RelayServer_Protobuf_Create_Abs(FileData *protobuf, struct protobuf_data_lis
 }
 
 #endif
+
+void f_v_Timestamp_Get()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL); 
+    int milliseconds = (tv.tv_usec / 1000) % 1000;
+   
+    time_t timer = time(NULL);
+    struct tm *t = localtime(&timer);
+    memset(g_timestamp, 0x00, DEFAULT_TIMESTAMP_SIZE);
+    sprintf(g_timestamp, "%04d%02d%02d_%02d%02d%02d_%03d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, milliseconds);
+}
+
+char *Timestamp_Print()
+{
+    f_v_Timestamp_Get();
+    return g_timestamp;
+}

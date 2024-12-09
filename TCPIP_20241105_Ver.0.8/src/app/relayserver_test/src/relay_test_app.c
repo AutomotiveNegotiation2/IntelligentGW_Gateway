@@ -4,6 +4,7 @@
 #define clear() printf("\033[H\033[J")
 #define gotoxy(x,y) printf("\033[%d;%dH", (y), (x))
 
+
 enum debug_lever_e G_Debug_Level;
 struct ticktimer_t G_TickTimer;
 struct clients_info_t G_Clients_Info;
@@ -32,10 +33,10 @@ int main(int argc, char* argv[])
         http_info.Request_Line.To = DEFAULT_HTTP_SERVER_PROGRAM_URL;
         http_info.Request_Line.What = "HTTP";
         http_info.Request_Line.Version = "1.0";
-        http_info.HOST = "192.168.137.1/";
+        http_info.HOST = DEFAULT_HTTP_HOST;
         http_info.PORT = "80";
         http_info.ACCEPT = "*/*";
-        http_info.CONTENT_TYPE = "Application/octet-stream";
+        http_info.CONTENT_TYPE = "Content-Type: multipart/form-data; boundary=" DEFAULT_HTTP_FROMDATA_BOUNDARY;
 
         G_HTTP_Request_Info_Program = malloc(sizeof(uint8_t) * DEFAULT_HTTP_INFO_SIZE);
         G_HTTP_Request_Info_Fireware = malloc(sizeof(uint8_t) * DEFAULT_HTTP_INFO_SIZE);
