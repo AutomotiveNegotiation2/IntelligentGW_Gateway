@@ -1,1 +1,0 @@
-scp -r ./src/* root@192.168.0.80:/home/root/Project_Relayserver/src/
